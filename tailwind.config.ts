@@ -13,6 +13,9 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['DM Sans', 'system-ui', 'sans-serif'],
+      },
       colors: {
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
@@ -46,6 +49,13 @@ export default {
         card: {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
+        },
+        eco: {
+          leaf: "hsl(var(--eco-leaf))",
+          earth: "hsl(var(--eco-earth))",
+          sky: "hsl(var(--eco-sky))",
+          sun: "hsl(var(--eco-sun))",
+          bark: "hsl(var(--eco-bark))",
         },
         sidebar: {
           DEFAULT: "hsl(var(--sidebar-background))",
