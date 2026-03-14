@@ -40,7 +40,7 @@ const Install = () => {
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === "accepted") {
       setInstalled(true);
-      toast.success("BagBuddy installed!");
+      toast.success("Bag Au Pair installed!");
     }
     setDeferredPrompt(null);
   };
