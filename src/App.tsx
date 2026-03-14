@@ -24,6 +24,7 @@ const App = () => (
           <Route path="/stores" element={<Stores />} />
           <Route path="/list" element={<ShoppingList />} />
           <Route path="/reminders" element={<Reminders />} />
+          <Route path="/install" element={<Install />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <BottomNav />
