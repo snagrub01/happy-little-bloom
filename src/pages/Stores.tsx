@@ -1,34 +1,22 @@
 import { useState } from "react";
-import { MapPin, Search, Navigation } from "lucide-react";
+import { MapPin, Search, Navigation, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
-
-interface Store {
-  id: string;
-  name: string;
-  distance: string;
-  address: string;
-}
-
-const MOCK_STORES: Store[] = [
-  { id: "1", name: "Whole Foods Market", distance: "0.8 mi", address: "123 Main St" },
-  { id: "2", name: "Trader Joe's", distance: "1.2 mi", address: "456 Oak Ave" },
-  { id: "3", name: "Kroger", distance: "2.1 mi", address: "789 Elm Blvd" },
-  { id: "4", name: "Safeway", distance: "3.4 mi", address: "321 Pine Dr" },
-  { id: "5", name: "ALDI", distance: "4.7 mi", address: "654 Maple Ln" },
-  { id: "6", name: "Publix", distance: "5.9 mi", address: "987 Cedar Ct" },
-];
+import { toast } from "sonner";
+import { geocodeZipCode, findNearbyStores, type StoreResult } from "@/lib/stores-api";
 
 const Stores = () => {
   const [zipCode, setZipCode] = useState("");
   const [radius, setRadius] = useState([5]);
+  const [loading, setLoading] = useState(false);
+  const [stores, setStores] = useState<StoreResult[]>([]);
   const [searched, setSearched] = useState(false);
   const [enabledStores, setEnabledStores] = useState<Set<string>>(new Set());
 
-  const filteredStores = MOCK_STORES.filter(
+  const filteredStores = stores.filter(
     (s) => parseFloat(s.distance) <= radius[0]
   );
 
@@ -41,8 +29,22 @@ const Stores = () => {
     });
   };
 
-  const handleSearch = () => {
-    if (zipCode.length === 5) setSearched(true);
+  const handleSearch = async () => {
+    if (zipCode.length !== 5) return;
+    setLoading(true);
+    try {
+      const { lat, lon } = await geocodeZipCode(zipCode);
+      const results = await findNearbyStores(lat, lon, radius[0]);
+      setStores(results);
+      setSearched(true);
+      if (results.length === 0) {
+        toast.info("No grocery stores found in this area");
+      }
+    } catch {
+      toast.error("Could not search stores. Please try again.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -65,9 +67,9 @@ const Stores = () => {
               className="text-base"
               inputMode="numeric"
             />
-            <Button onClick={handleSearch} disabled={zipCode.length !== 5} className="shrink-0">
-              <Search className="w-4 h-4 mr-1" />
-              Search
+            <Button onClick={handleSearch} disabled={zipCode.length !== 5 || loading} className="shrink-0">
+              {loading ? <Loader2 className="w-4 h-4 mr-1 animate-spin" /> : <Search className="w-4 h-4 mr-1" />}
+              {loading ? "Searching…" : "Search"}
             </Button>
           </div>
 
@@ -87,7 +89,7 @@ const Stores = () => {
 
       {/* Results */}
       <AnimatePresence>
-        {searched && (
+        {searched && !loading && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -95,7 +97,7 @@ const Stores = () => {
             transition={{ delay: 0.1 }}
           >
             <h2 className="text-lg font-semibold mb-3 text-foreground">
-              {filteredStores.length} stores found
+              {filteredStores.length} store{filteredStores.length !== 1 ? "s" : ""} found
             </h2>
             <div className="space-y-2">
               {filteredStores.map((store, i) => (
