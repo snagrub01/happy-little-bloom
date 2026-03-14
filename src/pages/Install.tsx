@@ -58,7 +58,7 @@ const Install = () => {
   return (
     <div className="min-h-screen pb-24 px-5 pt-12 max-w-lg mx-auto">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-foreground mb-1">Install BagBuddy</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-1">Install Bag Au Pair</h1>
         <p className="text-muted-foreground text-sm mb-6">
           Get the full experience with home screen access and notifications
         </p>
