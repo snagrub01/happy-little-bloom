@@ -1,17 +1,24 @@
 import { useState } from "react";
-import { Bell, ShoppingBag, Car, Droplets, Clock } from "lucide-react";
+import { Bell, ShoppingBag, Car, Droplets, Clock, Baby } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 
 interface ReminderConfig {
   enabled: boolean;
   timing: string;
 }
 
+interface SecondaryReminderConfig {
+  enabled: boolean;
+  delayMinutes: number;
+}
+
 const Reminders = () => {
   const [bagIn, setBagIn] = useState<ReminderConfig>({ enabled: true, timing: "arriving" });
+  const [secondaryReminder, setSecondaryReminder] = useState<SecondaryReminderConfig>({ enabled: false, delayMinutes: 3 });
   const [bagOut, setBagOut] = useState<ReminderConfig>({ enabled: true, timing: "5" });
   const [washReminder, setWashReminder] = useState<ReminderConfig>({ enabled: true, timing: "14" });
 
@@ -62,6 +69,51 @@ const Reminders = () => {
                     <SelectItem value="0.25mi">¼ mile from store</SelectItem>
                   </SelectContent>
                 </Select>
+              </div>
+            )}
+          </Card>
+        </motion.div>
+
+        {/* Secondary follow-up reminder */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.12 }}>
+          <Card className="p-4 border border-border">
+            <div className="flex items-start justify-between mb-3">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
+                  <Baby className="w-5 h-5 text-secondary-foreground" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-card-foreground">Follow-up reminder</p>
+                  <p className="text-xs text-muted-foreground">
+                    Extra time to unload kids first
+                  </p>
+                </div>
+              </div>
+              <Switch
+                checked={secondaryReminder.enabled}
+                onCheckedChange={(checked) => setSecondaryReminder({ ...secondaryReminder, enabled: checked })}
+              />
+            </div>
+            {secondaryReminder.enabled && (
+              <div className="mt-2 pt-3 border-t border-border space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">Remind again after:</span>
+                  </div>
+                  <span className="text-sm font-semibold text-foreground">{secondaryReminder.delayMinutes} min</span>
+                </div>
+                <Slider
+                  value={[secondaryReminder.delayMinutes]}
+                  onValueChange={([v]) => setSecondaryReminder({ ...secondaryReminder, delayMinutes: v })}
+                  min={2}
+                  max={5}
+                  step={1}
+                  className="w-full"
+                />
+                <p className="text-xs text-muted-foreground">
+                  Perfect for getting kids out of car seats first 👶
+                </p>
               </div>
             )}
           </Card>

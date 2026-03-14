@@ -40,7 +40,7 @@ const Install = () => {
     const { outcome } = await deferredPrompt.userChoice;
     if (outcome === "accepted") {
       setInstalled(true);
-      toast.success("BagBuddy installed!");
+      toast.success("Bag Au Pair installed!");
     }
     setDeferredPrompt(null);
   };
@@ -58,7 +58,7 @@ const Install = () => {
   return (
     <div className="min-h-screen pb-24 px-5 pt-12 max-w-lg mx-auto">
       <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-2xl font-bold text-foreground mb-1">Install BagBuddy</h1>
+        <h1 className="text-2xl font-bold text-foreground mb-1">Install Bag Au Pair</h1>
         <p className="text-muted-foreground text-sm mb-6">
           Get the full experience with home screen access and notifications
         </p>
@@ -74,7 +74,7 @@ const Install = () => {
               <div className="flex-1">
                 <h2 className="font-semibold text-foreground mb-1">Install to Home Screen</h2>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Add BagBuddy to your home screen for quick access — works like a native app.
+                  Add Bag Au Pair to your home screen for quick access — works like a native app.
                 </p>
                 {installed ? (
                   <div className="flex items-center gap-2 text-primary text-sm font-medium">

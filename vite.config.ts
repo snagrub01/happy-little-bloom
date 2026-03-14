@@ -19,8 +19,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "pwa-icon-192.png", "pwa-icon-512.png"],
       manifest: {
-        name: "BagBuddy — Grocery Bag Reminders",
-        short_name: "BagBuddy",
+        name: "Bag Au Pair — Grocery Bag Reminders",
+        short_name: "Bag Au Pair",
         description: "Never forget your reusable grocery bags. Geofence alerts, shopping lists, and wash reminders.",
         theme_color: "#4a7c59",
         background_color: "#faf8f5",

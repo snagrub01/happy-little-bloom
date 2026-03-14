@@ -18,7 +18,7 @@ export function sendLocalNotification(title: string, body: string) {
 export function scheduleBagReminder(delayMinutes: number, message: string) {
   const ms = delayMinutes * 60 * 1000;
   setTimeout(() => {
-    sendLocalNotification("🛍️ BagBuddy Reminder", message);
+    sendLocalNotification("🛍️ Bag Au Pair Reminder", message);
   }, ms);
 }
 

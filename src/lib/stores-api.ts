@@ -44,7 +44,7 @@ function haversineDistance(
 export async function geocodeZipCode(zip: string): Promise<{ lat: number; lon: number }> {
   const res = await fetch(
     `https://nominatim.openstreetmap.org/search?postalcode=${zip}&country=US&format=json&limit=1`,
-    { headers: { "User-Agent": "BagBuddy/1.0" } }
+    { headers: { "User-Agent": "BagAuPair/1.0" } }
   );
   const data: NominatimResult[] = await res.json();
   if (!data.length) throw new Error("Zip code not found");
