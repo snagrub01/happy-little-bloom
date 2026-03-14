@@ -34,7 +34,7 @@ const Index = () => {
         <div className="flex items-center gap-2 mb-1">
           <Leaf className="w-6 h-6 text-primary" />
           <span className="text-sm font-semibold tracking-wide text-primary uppercase">
-            BagBuddy
+            Bag Au Pair
           </span>
         </div>
         <h1 className="text-3xl font-bold text-foreground">

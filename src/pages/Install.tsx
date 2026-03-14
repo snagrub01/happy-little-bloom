@@ -74,7 +74,7 @@ const Install = () => {
               <div className="flex-1">
                 <h2 className="font-semibold text-foreground mb-1">Install to Home Screen</h2>
                 <p className="text-sm text-muted-foreground mb-3">
-                  Add BagBuddy to your home screen for quick access — works like a native app.
+                  Add Bag Au Pair to your home screen for quick access — works like a native app.
                 </p>
                 {installed ? (
                   <div className="flex items-center gap-2 text-primary text-sm font-medium">
