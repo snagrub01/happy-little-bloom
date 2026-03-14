@@ -1,17 +1,24 @@
 import { useState } from "react";
-import { Bell, ShoppingBag, Car, Droplets, Clock } from "lucide-react";
+import { Bell, ShoppingBag, Car, Droplets, Clock, Baby } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
 
 interface ReminderConfig {
   enabled: boolean;
   timing: string;
 }
 
+interface SecondaryReminderConfig {
+  enabled: boolean;
+  delayMinutes: number;
+}
+
 const Reminders = () => {
   const [bagIn, setBagIn] = useState<ReminderConfig>({ enabled: true, timing: "arriving" });
+  const [secondaryReminder, setSecondaryReminder] = useState<SecondaryReminderConfig>({ enabled: false, delayMinutes: 3 });
   const [bagOut, setBagOut] = useState<ReminderConfig>({ enabled: true, timing: "5" });
   const [washReminder, setWashReminder] = useState<ReminderConfig>({ enabled: true, timing: "14" });
 
