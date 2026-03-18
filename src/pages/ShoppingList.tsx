@@ -13,8 +13,14 @@ interface Item {
 
 const ShoppingList = () => {
   const [items, setItems] = useState<Item[]>(() => {
-    const saved = localStorage.getItem("bagbuddy-list");
-    return saved ? JSON.parse(saved) : [];
+    try {
+      const saved = localStorage.getItem("bagbuddy-list");
+      if (!saved) return [];
+      const parsed = JSON.parse(saved);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
   });
   const [input, setInput] = useState("");
 
