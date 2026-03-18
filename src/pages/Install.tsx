@@ -65,33 +65,42 @@ const Install = () => {
       </motion.div>
 
       <div className="space-y-4">
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-          <Card className="p-5 border border-border">
-            <div className="flex items-start gap-4">
-              <div className="w-12 h-12 rounded-xl eco-gradient flex items-center justify-center shrink-0">
-                <Smartphone className="w-6 h-6 text-primary-foreground" />
+        {/* Install card - centered at top */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }} className="flex justify-center">
+          <Card className="p-5 border border-border w-full max-w-sm text-center">
+            <div className="flex flex-col items-center gap-3">
+              <div className="w-14 h-14 rounded-xl eco-gradient flex items-center justify-center">
+                <Smartphone className="w-7 h-7 text-primary-foreground" />
               </div>
-              <div className="flex-1">
-                <h2 className="font-semibold text-foreground mb-1">Install to Home Screen</h2>
-                <p className="text-sm text-muted-foreground mb-3">
-                  Add Bag Au Pair to your home screen for quick access — works like a native app.
-                </p>
-                {installed ? (
-                  <div className="flex items-center gap-2 text-primary text-sm font-medium">
-                    <CheckCircle2 className="w-4 h-4" />
-                    Installed!
-                  </div>
-                ) : (
-                  <Button onClick={handleInstall} className="eco-gradient border-0">
-                    <Download className="w-4 h-4 mr-2" />
-                    Install App
-                  </Button>
-                )}
-              </div>
+              <h2 className="font-semibold text-foreground">Install to Home Screen</h2>
+              <p className="text-sm text-muted-foreground">
+                Add Bag Au Pair to your home screen for quick access — works like a native app.
+              </p>
+              {installed ? (
+                <div className="flex items-center gap-2 text-primary text-sm font-medium">
+                  <CheckCircle2 className="w-4 h-4" />
+                  Installed!
+                </div>
+              ) : (
+                <Button onClick={handleInstall} className="eco-gradient border-0">
+                  <Download className="w-4 h-4 mr-2" />
+                  Install App
+                </Button>
+              )}
             </div>
           </Card>
         </motion.div>
 
+        {/* iPhone notice - right below install */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="flex justify-center">
+          <Card className="p-4 border border-border bg-accent/50 w-full max-w-sm">
+            <p className="text-sm text-muted-foreground text-center">
+              <strong className="text-foreground">📱 iPhone users:</strong> Tap the Share button in Safari, then "Add to Home Screen" to install.
+            </p>
+          </Card>
+        </motion.div>
+
+        {/* Notifications card */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
           <Card className="p-5 border border-border">
             <div className="flex items-start gap-4">
@@ -116,14 +125,6 @@ const Install = () => {
                 )}
               </div>
             </div>
-          </Card>
-        </motion.div>
-
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
-          <Card className="p-4 border border-border bg-accent/50">
-            <p className="text-sm text-muted-foreground">
-              <strong className="text-foreground">📱 iPhone users:</strong> Tap the Share button in Safari, then "Add to Home Screen" to install.
-            </p>
           </Card>
         </motion.div>
       </div>
