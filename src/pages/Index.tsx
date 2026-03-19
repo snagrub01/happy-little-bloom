@@ -26,6 +26,14 @@ const quickActions = [
 
 const Index = () => {
   const navigate = useNavigate();
+  const [activeCount, setActiveCount] = useState(0);
+
+  useEffect(() => {
+    const { stores, enabled } = loadStoreData();
+    const settings = loadReminderSettings();
+    const count = settings.bagIn.enabled ? stores.filter((s) => enabled.has(s.id)).length : 0;
+    setActiveCount(count);
+  }, []);
 
   return (
     <div className="min-h-screen pb-24 px-5 pt-12 max-w-lg mx-auto">
