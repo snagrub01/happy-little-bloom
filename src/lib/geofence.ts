@@ -1,6 +1,7 @@
 import type { StoreResult } from "./stores-api";
 import { sendLocalNotification, requestNotificationPermission } from "./notifications";
 import { loadReminderSettings } from "./reminder-persistence";
+import { gentleVibrate } from "./vibration";
 
 let watchId: number | null = null;
 let notifiedStoreIds = new Set<string>();
@@ -53,6 +54,15 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
             "🛍️ Don't forget your bags!",
             `You're near ${store.name} — grab your reusable bags!`
           );
+
+          // Coupon app reminder — vibrate only
+          if (settings.couponReminder.enabled) {
+            gentleVibrate();
+            sendLocalNotification(
+              "🏷️ Check for coupons!",
+              `You're entering ${store.name} — open their app to check this week's deals!`
+            );
+          }
 
           // Secondary follow-up reminder
           if (settings.secondaryReminder.enabled) {
