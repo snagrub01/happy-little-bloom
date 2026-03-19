@@ -1,6 +1,7 @@
 import type { StoreResult } from "./stores-api";
 import { sendLocalNotification, requestNotificationPermission } from "./notifications";
 import { loadReminderSettings } from "./reminder-persistence";
+import { gentleVibrate } from "./vibration";
 
 let watchId: number | null = null;
 let notifiedStoreIds = new Set<string>();
