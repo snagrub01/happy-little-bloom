@@ -154,6 +154,9 @@ const Reminders = () => {
           </Card>
         </motion.div>
 
+        {/* Home location (needed for bag-return) */}
+        <HomeLocationCard delay={0.13} />
+
         {/* Put bags back in car */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
           <Card className="p-4 border border-border">
