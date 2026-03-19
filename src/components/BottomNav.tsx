@@ -17,14 +17,14 @@ const BottomNav = () => {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border backdrop-blur-lg bg-opacity-95">
-      <div className="flex items-center justify-around max-w-lg mx-auto py-2 px-4">
+      <div className="flex items-center justify-around max-w-lg mx-auto py-2 px-1">
         {tabs.map((tab) => {
           const isActive = location.pathname === tab.path;
           return (
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className="relative flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-colors"
+              className="relative flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-colors min-w-0"
             >
               {isActive && (
                 <motion.div
