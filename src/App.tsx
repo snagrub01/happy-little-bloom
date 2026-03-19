@@ -8,6 +8,7 @@ import Index from "./pages/Index.tsx";
 import Stores from "./pages/Stores.tsx";
 import ShoppingList from "./pages/ShoppingList.tsx";
 import Reminders from "./pages/Reminders.tsx";
+import Donate from "./pages/Donate.tsx";
 import Install from "./pages/Install.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/stores" element={<Stores />} />
           <Route path="/list" element={<ShoppingList />} />
           <Route path="/reminders" element={<Reminders />} />
+          <Route path="/donate" element={<Donate />} />
           <Route path="/install" element={<Install />} />
           <Route path="*" element={<NotFound />} />
         </Routes>

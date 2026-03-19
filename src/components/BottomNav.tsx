@@ -1,4 +1,4 @@
-import { Home, MapPin, ShoppingCart, Bell, Download } from "lucide-react";
+import { Home, MapPin, ShoppingCart, Bell, Heart, Download } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
@@ -7,6 +7,7 @@ const tabs = [
   { path: "/stores", icon: MapPin, label: "Stores" },
   { path: "/list", icon: ShoppingCart, label: "List" },
   { path: "/reminders", icon: Bell, label: "Reminders" },
+  { path: "/donate", icon: Heart, label: "Donate" },
   { path: "/install", icon: Download, label: "Install" },
 ];
 
