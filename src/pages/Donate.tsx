@@ -19,7 +19,7 @@ const Donate = () => {
         containerRef.current.innerHTML = "";
         (window as any).paypal
           .HostedButtons({
-            hostedButtonId: "DG88QL8NG87PC",
+            hostedButtonId: "L3J2VLJ37LJVW",
           })
           .render(containerRef.current)
           .then(() => setLoading(false))
