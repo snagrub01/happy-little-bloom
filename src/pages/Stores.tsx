@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { MapPin, Search, Navigation, Loader2 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Card } from "@/components/ui/card";
@@ -7,24 +7,45 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { toast } from "sonner";
 import { geocodeZipCode, findNearbyStores, type StoreResult } from "@/lib/stores-api";
+import { saveStoreData, loadStoreData } from "@/lib/store-persistence";
+import { startGeofenceWatching } from "@/lib/geofence";
+import { requestNotificationPermission } from "@/lib/notifications";
 
 const Stores = () => {
-  const [zipCode, setZipCode] = useState("");
-  const [radius, setRadius] = useState([5]);
+  const saved = loadStoreData();
+  const [zipCode, setZipCode] = useState(saved.zip);
+  const [radius, setRadius] = useState([saved.radius]);
   const [loading, setLoading] = useState(false);
-  const [stores, setStores] = useState<StoreResult[]>([]);
-  const [searched, setSearched] = useState(false);
-  const [enabledStores, setEnabledStores] = useState<Set<string>>(new Set());
+  const [stores, setStores] = useState<StoreResult[]>(saved.stores);
+  const [searched, setSearched] = useState(saved.stores.length > 0);
+  const [enabledStores, setEnabledStores] = useState<Set<string>>(saved.enabled);
 
   const filteredStores = stores.filter(
     (s) => parseFloat(s.distance) <= radius[0]
   );
 
+  // Persist whenever state changes
+  useEffect(() => {
+    saveStoreData(zipCode, radius[0], stores, enabledStores);
+  }, [zipCode, radius, stores, enabledStores]);
+
+  // Start geofence watching when enabled stores change
+  useEffect(() => {
+    const enabled = stores.filter((s) => enabledStores.has(s.id));
+    if (enabled.length > 0) {
+      startGeofenceWatching(enabled);
+    }
+  }, [enabledStores, stores]);
+
   const toggleStore = (id: string) => {
     setEnabledStores((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      if (next.has(id)) {
+        next.delete(id);
+      } else {
+        next.add(id);
+        requestNotificationPermission();
+      }
       return next;
     });
   };
