@@ -1,4 +1,4 @@
-import { Home, MapPin, ShoppingCart, Bell, Download } from "lucide-react";
+import { Home, MapPin, ShoppingCart, Bell, Heart, Download } from "lucide-react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 
