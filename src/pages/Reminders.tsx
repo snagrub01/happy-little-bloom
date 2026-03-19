@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Bell, ShoppingBag, Car, Droplets, Clock, Baby, Tag } from "lucide-react";
 import { motion } from "framer-motion";
+import HomeLocationCard from "@/components/HomeLocationCard";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -152,6 +153,9 @@ const Reminders = () => {
             )}
           </Card>
         </motion.div>
+
+        {/* Home location (needed for bag-return) */}
+        <HomeLocationCard delay={0.13} />
 
         {/* Put bags back in car */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>

@@ -1,11 +1,14 @@
 import type { StoreResult } from "./stores-api";
-import { sendLocalNotification, requestNotificationPermission } from "./notifications";
+import { sendLocalNotification, requestNotificationPermission, scheduleBagReminder } from "./notifications";
 import { loadReminderSettings } from "./reminder-persistence";
+import { loadHomeLocation } from "./home-location";
 import { gentleVibrate } from "./vibration";
 
 let watchId: number | null = null;
 let notifiedStoreIds = new Set<string>();
 let secondaryTimers = new Map<string, ReturnType<typeof setTimeout>>();
+let homeNotified = false;
+let bagOutTimer: ReturnType<typeof setTimeout> | null = null;
 
 function distanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 3958.8;
@@ -28,6 +31,8 @@ function getThresholdMiles(timing: string): number {
   }
 }
 
+const HOME_THRESHOLD_MILES = 0.05; // ~250ft
+
 export function startGeofenceWatching(enabledStores: StoreResult[]) {
   if (!("geolocation" in navigator)) return;
   stopGeofenceWatching();
@@ -41,46 +46,78 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
       const { latitude, longitude } = position.coords;
       const settings = loadReminderSettings();
 
-      if (!settings.bagIn.enabled) return;
+      // --- Store proximity alerts ---
+      if (settings.bagIn.enabled) {
+        const threshold = getThresholdMiles(settings.bagIn.timing);
 
-      const threshold = getThresholdMiles(settings.bagIn.timing);
+        for (const store of enabledStores) {
+          const dist = distanceMiles(latitude, longitude, store.lat, store.lon);
 
-      for (const store of enabledStores) {
-        const dist = distanceMiles(latitude, longitude, store.lat, store.lon);
-
-        if (dist <= threshold && !notifiedStoreIds.has(store.id)) {
-          notifiedStoreIds.add(store.id);
-          sendLocalNotification(
-            "🛍️ Don't forget your bags!",
-            `You're near ${store.name} — grab your reusable bags!`
-          );
-
-          // Coupon app reminder — vibrate only
-          if (settings.couponReminder.enabled) {
-            gentleVibrate();
+          if (dist <= threshold && !notifiedStoreIds.has(store.id)) {
+            notifiedStoreIds.add(store.id);
             sendLocalNotification(
-              "🏷️ Check for coupons!",
-              `You're entering ${store.name} — open their app to check this week's deals!`
+              "🛍️ Don't forget your bags!",
+              `You're near ${store.name} — grab your reusable bags!`
             );
+
+            // Coupon app reminder — vibrate only
+            if (settings.couponReminder.enabled) {
+              gentleVibrate();
+              sendLocalNotification(
+                "🏷️ Check for coupons!",
+                `You're entering ${store.name} — open their app to check this week's deals!`
+              );
+            }
+
+            // Secondary follow-up reminder
+            if (settings.secondaryReminder.enabled) {
+              const delay = settings.secondaryReminder.delayMinutes * 60 * 1000;
+              const timer = setTimeout(() => {
+                sendLocalNotification(
+                  "🛍️ Bag Reminder (follow-up)",
+                  `Just checking — did you grab your bags for ${store.name}?`
+                );
+                secondaryTimers.delete(store.id);
+              }, delay);
+              secondaryTimers.set(store.id, timer);
+            }
           }
 
-          // Secondary follow-up reminder
-          if (settings.secondaryReminder.enabled) {
-            const delay = settings.secondaryReminder.delayMinutes * 60 * 1000;
-            const timer = setTimeout(() => {
-              sendLocalNotification(
-                "🛍️ Bag Reminder (follow-up)",
-                `Just checking — did you grab your bags for ${store.name}?`
-              );
-              secondaryTimers.delete(store.id);
-            }, delay);
-            secondaryTimers.set(store.id, timer);
+          // Reset notification if user moves away
+          if (dist > threshold * 3 && notifiedStoreIds.has(store.id)) {
+            notifiedStoreIds.delete(store.id);
           }
         }
+      }
 
-        // Reset notification if user moves away
-        if (dist > threshold * 3 && notifiedStoreIds.has(store.id)) {
-          notifiedStoreIds.delete(store.id);
+      // --- Home arrival → bag-return reminder ---
+      if (settings.bagOut.enabled) {
+        const home = loadHomeLocation();
+        if (home) {
+          const distHome = distanceMiles(latitude, longitude, home.lat, home.lon);
+
+          if (distHome <= HOME_THRESHOLD_MILES && !homeNotified) {
+            homeNotified = true;
+            const delayMin = parseInt(settings.bagOut.timing, 10) || 5;
+            const delayMs = delayMin * 60 * 1000;
+
+            bagOutTimer = setTimeout(() => {
+              sendLocalNotification(
+                "🚗 Put your bags back!",
+                `You've been home for ${delayMin} minutes — time to put your reusable bags back in the car!`
+              );
+              bagOutTimer = null;
+            }, delayMs);
+          }
+
+          // Reset when user leaves home area
+          if (distHome > HOME_THRESHOLD_MILES * 3 && homeNotified) {
+            homeNotified = false;
+            if (bagOutTimer) {
+              clearTimeout(bagOutTimer);
+              bagOutTimer = null;
+            }
+          }
         }
       }
     },
@@ -97,4 +134,9 @@ export function stopGeofenceWatching() {
   notifiedStoreIds.clear();
   secondaryTimers.forEach((t) => clearTimeout(t));
   secondaryTimers.clear();
+  homeNotified = false;
+  if (bagOutTimer) {
+    clearTimeout(bagOutTimer);
+    bagOutTimer = null;
+  }
 }
