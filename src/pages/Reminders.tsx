@@ -226,6 +226,32 @@ const Reminders = () => {
           </Card>
         </motion.div>
 
+        {/* Coupon app reminder */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.22 }}>
+          <Card className="p-4 border border-border">
+            <div className="flex items-start justify-between mb-1">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-accent flex items-center justify-center">
+                  <Tag className="w-5 h-5 text-accent-foreground" />
+                </div>
+                <div>
+                  <p className="font-semibold text-sm text-card-foreground">Coupon app reminder</p>
+                  <p className="text-xs text-muted-foreground">Vibrate to check store deals</p>
+                </div>
+              </div>
+              <Switch
+                checked={couponReminder.enabled}
+                onCheckedChange={(checked) => setCouponReminder({ ...couponReminder, enabled: checked })}
+              />
+            </div>
+            {couponReminder.enabled && (
+              <p className="text-xs text-muted-foreground mt-2 pt-3 border-t border-border leading-relaxed">
+                📳 When you arrive at a store, your phone will vibrate and remind you to open the store's app (Safeway, Raley's, etc.) to check for weekly coupons and deals.
+              </p>
+            )}
+          </Card>
+        </motion.div>
+
         {/* Test Notification */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
           <Card className="p-4 border border-border flex items-center justify-between">
