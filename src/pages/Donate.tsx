@@ -19,7 +19,7 @@ const Donate = () => {
         containerRef.current.innerHTML = "";
         (window as any).paypal
           .HostedButtons({
-            hostedButtonId: "DG88QL8NG87PC",
+            hostedButtonId: "L3J2VLJ37LJVW",
           })
           .render(containerRef.current)
           .then(() => setLoading(false))
@@ -37,7 +37,7 @@ const Donate = () => {
 
     const script = document.createElement("script");
     script.src =
-      "https://www.paypal.com/sdk/js?client-id=sb&components=hosted-buttons&disable-funding=venmo&currency=USD";
+      "https://www.paypal.com/sdk/js?client-id=BAABPm33q4ECE8dAsykEDtcFFU-x_XO2EdmKDQJkKQEJ_T-nsoN-AyampB83JpeDr6Vh5xHL7v3xr47UXE&components=hosted-buttons&enable-funding=venmo&currency=USD";
     script.setAttribute("data-hosted-buttons", "true");
     script.async = true;
     script.crossOrigin = "anonymous";
@@ -93,7 +93,7 @@ const Donate = () => {
               later.
             </p>
           )}
-          <div ref={containerRef} id="paypal-container-DG88QL8NG87PC" />
+          <div ref={containerRef} id="paypal-container-L3J2VLJ37LJVW" />
         </Card>
       </motion.div>
     </div>
