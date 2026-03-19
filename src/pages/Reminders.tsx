@@ -22,9 +22,9 @@ const Reminders = () => {
 
   // Persist settings on change
   useEffect(() => {
-    const settings = { bagIn, secondaryReminder, bagOut, washReminder };
+    const settings = { bagIn, secondaryReminder, bagOut, washReminder, couponReminder };
     saveReminderSettings(settings);
-  }, [bagIn, secondaryReminder, bagOut, washReminder]);
+  }, [bagIn, secondaryReminder, bagOut, washReminder, couponReminder]);
 
   // Re-start geofence when bag-in settings change
   useEffect(() => {
