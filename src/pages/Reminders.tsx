@@ -18,6 +18,7 @@ const Reminders = () => {
   const [secondaryReminder, setSecondaryReminder] = useState(saved.secondaryReminder);
   const [bagOut, setBagOut] = useState(saved.bagOut);
   const [washReminder, setWashReminder] = useState(saved.washReminder);
+  const [couponReminder, setCouponReminder] = useState(saved.couponReminder);
 
   // Persist settings on change
   useEffect(() => {
