@@ -55,6 +55,15 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
             `You're near ${store.name} — grab your reusable bags!`
           );
 
+          // Coupon app reminder — vibrate only
+          if (settings.couponReminder.enabled) {
+            gentleVibrate();
+            sendLocalNotification(
+              "🏷️ Check for coupons!",
+              `You're entering ${store.name} — open their app to check this week's deals!`
+            );
+          }
+
           // Secondary follow-up reminder
           if (settings.secondaryReminder.enabled) {
             const delay = settings.secondaryReminder.delayMinutes * 60 * 1000;
