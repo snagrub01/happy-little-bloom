@@ -7,6 +7,7 @@ const tabs = [
   { path: "/stores", icon: MapPin, label: "Stores" },
   { path: "/list", icon: ShoppingCart, label: "List" },
   { path: "/reminders", icon: Bell, label: "Reminders" },
+  { path: "/donate", icon: Heart, label: "Donate" },
   { path: "/install", icon: Download, label: "Install" },
 ];
 
