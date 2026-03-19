@@ -16,7 +16,7 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: ["favicon.ico", "pwa-icon-192.png", "pwa-icon-512.png"],
       manifest: {
         name: "Bag Au Pair — Grocery Bag Reminders",
