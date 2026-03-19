@@ -1,7 +1,11 @@
-import { ShoppingBag, MapPin, ListChecks, Sparkles, Leaf } from "lucide-react";
+import { ShoppingBag, MapPin, ListChecks, Sparkles, Leaf, Radio } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { loadStoreData } from "@/lib/store-persistence";
+import { loadReminderSettings } from "@/lib/reminder-persistence";
 
 const quickActions = [
   {
