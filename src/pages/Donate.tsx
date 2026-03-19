@@ -37,7 +37,7 @@ const Donate = () => {
 
     const script = document.createElement("script");
     script.src =
-      "https://www.paypal.com/sdk/js?client-id=sb&components=hosted-buttons&disable-funding=venmo&currency=USD";
+      "https://www.paypal.com/sdk/js?client-id=BAABPm33q4ECE8dAsykEDtcFFU-x_XO2EdmKDQJkKQEJ_T-nsoN-AyampB83JpeDr6Vh5xHL7v3xr47UXE&components=hosted-buttons&enable-funding=venmo&currency=USD";
     script.setAttribute("data-hosted-buttons", "true");
     script.async = true;
     script.crossOrigin = "anonymous";
