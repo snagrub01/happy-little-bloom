@@ -24,7 +24,7 @@ const BottomNav = () => {
             <button
               key={tab.path}
               onClick={() => navigate(tab.path)}
-              className="relative flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-colors"
+              className="relative flex flex-col items-center gap-0.5 px-2 py-2 rounded-xl transition-colors min-w-0"
             >
               {isActive && (
                 <motion.div
