@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import BottomNav from "@/components/BottomNav";
+import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
 import Index from "./pages/Index.tsx";
 import Stores from "./pages/Stores.tsx";
 import ShoppingList from "./pages/ShoppingList.tsx";
