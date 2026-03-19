@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Bell, ShoppingBag, Car, Droplets, Clock, Baby } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
@@ -224,8 +225,34 @@ const Reminders = () => {
           </Card>
         </motion.div>
 
-        {/* Info note */}
+        {/* Test Notification */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.25 }}>
+          <Card className="p-4 border border-border flex items-center justify-between">
+            <div>
+              <p className="font-semibold text-sm text-card-foreground">Test Notification</p>
+              <p className="text-xs text-muted-foreground">Send a test to verify notifications work</p>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={async () => {
+                const granted = await requestNotificationPermission();
+                if (granted) {
+                  sendLocalNotification("🛍️ Bag Au Pair", "Notifications are working! You're all set.");
+                  toast.success("Test notification sent!");
+                } else {
+                  toast.error("Please enable notifications in your browser settings");
+                }
+              }}
+            >
+              <Bell className="w-4 h-4 mr-1" />
+              Test
+            </Button>
+          </Card>
+        </motion.div>
+
+        {/* Info note */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className="p-4 border border-border bg-accent/50">
             <p className="text-xs text-accent-foreground leading-relaxed">
               💡 <strong>How it works:</strong> Enable store alerts on the Stores tab. When you're near
