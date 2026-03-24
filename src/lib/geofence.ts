@@ -2,6 +2,7 @@ import type { StoreResult } from "./stores-api";
 import { sendLocalNotification, requestNotificationPermission, scheduleBagReminder } from "./notifications";
 import { loadReminderSettings } from "./reminder-persistence";
 import { loadHomeLocation } from "./home-location";
+import { loadStoreGeofences } from "./store-persistence";
 import { gentleVibrate } from "./vibration";
 
 let watchId: number | null = null;
@@ -31,6 +32,14 @@ function getThresholdMiles(timing: string): number {
   }
 }
 
+function getStoreThresholdMiles(storeId: string, geofences: Map<string, number>, fallbackTiming: string): number {
+  const customFeet = geofences.get(storeId);
+  if (customFeet !== undefined) {
+    return customFeet / 5280;
+  }
+  return getThresholdMiles(fallbackTiming);
+}
+
 const HOME_THRESHOLD_MILES = 0.05; // ~250ft
 
 export function startGeofenceWatching(enabledStores: StoreResult[]) {
@@ -45,12 +54,12 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
     (position) => {
       const { latitude, longitude } = position.coords;
       const settings = loadReminderSettings();
+      const geofences = loadStoreGeofences();
 
       // --- Store proximity alerts ---
       if (settings.bagIn.enabled) {
-        const threshold = getThresholdMiles(settings.bagIn.timing);
-
         for (const store of enabledStores) {
+          const threshold = getStoreThresholdMiles(store.id, geofences, settings.bagIn.timing);
           const dist = distanceMiles(latitude, longitude, store.lat, store.lon);
 
           if (dist <= threshold && !notifiedStoreIds.has(store.id)) {
