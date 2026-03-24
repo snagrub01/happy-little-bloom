@@ -95,7 +95,7 @@ const Install = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }} className="flex justify-center">
           <Card className="p-4 border border-border bg-accent/50 w-full max-w-sm">
             <p className="text-sm text-muted-foreground text-center">
-              <strong className="text-foreground">📱 iPhone users:</strong> Tap the Share button in Safari, then "Add to Home Screen" to install.
+              <strong className="text-foreground">📱 iPhone users:</strong> On iPhone, open Safari (not Chrome/Firefox), go to your app URL, tap the Share button (square with arrow), then tap "Add to Home Screen".
             </p>
           </Card>
         </motion.div>
