@@ -282,7 +282,14 @@ const Stores = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
+          <div className="py-4 space-y-4">
+            {dialogStore && (
+              <GeofenceMap
+                lat={dialogStore.lat}
+                lon={dialogStore.lon}
+                radiusFeet={dialogFeet[0]}
+              />
+            )}
             <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-medium text-foreground">Alert distance</span>
               <span className="text-sm font-bold text-primary">{feetLabel(dialogFeet[0])}</span>
