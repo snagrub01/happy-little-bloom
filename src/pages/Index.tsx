@@ -96,6 +96,9 @@ const Index = () => {
               </div>
             </div>
           </div>
+          <p className="text-primary-foreground/80 text-xs mt-4 leading-relaxed">
+            When you go to app.bagaupair.app press the install button to add to home screen just like a native app. It is totally secure and your personal data is safe unlike other app companies that sell off your data.
+          </p>
         </Card>
       </motion.div>
 
