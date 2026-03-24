@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { geocodeZipCode, findNearbyStores, type StoreResult } from "@/lib/stores-api";
+import GeofenceMap from "@/components/GeofenceMap";
 import { saveStoreData, loadStoreData, saveStoreGeofences, loadStoreGeofences } from "@/lib/store-persistence";
 import { startGeofenceWatching } from "@/lib/geofence";
 import { requestNotificationPermission } from "@/lib/notifications";
@@ -281,7 +282,14 @@ const Stores = () => {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="py-4">
+          <div className="py-4 space-y-4">
+            {dialogStore && (
+              <GeofenceMap
+                lat={dialogStore.lat}
+                lon={dialogStore.lon}
+                radiusFeet={dialogFeet[0]}
+              />
+            )}
             <div className="flex justify-between items-center mb-3">
               <span className="text-sm font-medium text-foreground">Alert distance</span>
               <span className="text-sm font-bold text-primary">{feetLabel(dialogFeet[0])}</span>
