@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { geocodeZipCode, findNearbyStores, type StoreResult } from "@/lib/stores-api";
+import GeofenceMap from "@/components/GeofenceMap";
 import { saveStoreData, loadStoreData, saveStoreGeofences, loadStoreGeofences } from "@/lib/store-persistence";
 import { startGeofenceWatching } from "@/lib/geofence";
 import { requestNotificationPermission } from "@/lib/notifications";
