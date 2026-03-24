@@ -59,7 +59,7 @@ export async function findNearbyStores(
   const radiusMeters = Math.round(radiusMiles * 1609.34);
 
   const query = `
-    [out:json][timeout:10];
+    [out:json][timeout:25];
     (
       node["shop"="supermarket"](around:${radiusMeters},${lat},${lon});
       way["shop"="supermarket"](around:${radiusMeters},${lat},${lon});
