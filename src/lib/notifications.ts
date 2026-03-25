@@ -6,8 +6,24 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return result === "granted";
 }
 
-export function sendLocalNotification(title: string, body: string) {
+export async function sendLocalNotification(title: string, body: string) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  // Android PWAs require service worker notifications (new Notification() doesn't work)
+  if ("serviceWorker" in navigator) {
+    try {
+      const registration = await navigator.serviceWorker.ready;
+      await registration.showNotification(title, {
+        body,
+        icon: "/pwa-icon-192.png",
+        badge: "/pwa-icon-192.png",
+      });
+      return;
+    } catch (e) {
+      // Fall back to standard Notification API
+    }
+  }
+
   new Notification(title, {
     body,
     icon: "/pwa-icon-192.png",
