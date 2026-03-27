@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import GeofenceMap from "@/components/GeofenceMap";
 import { motion } from "framer-motion";
 import { saveWorkLocation, loadWorkLocation, clearWorkLocation, type WorkLocation } from "@/lib/work-location";
 import { reverseGeocode } from "@/lib/home-location";
