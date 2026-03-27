@@ -163,12 +163,13 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
       if (settings.leavingWork.enabled) {
         const work = loadWorkLocation();
         if (work) {
+          const workThreshold = getLeavingThresholdMiles(work.radiusFeet);
           const distWork = distanceMiles(latitude, longitude, work.lat, work.lon);
-          if (distWork <= HOME_THRESHOLD_MILES) {
+          if (distWork <= workThreshold) {
             wasAtWork = true;
             leavingWorkNotified = false;
           }
-          if (distWork > HOME_THRESHOLD_MILES * 3 && wasAtWork && !leavingWorkNotified) {
+          if (distWork > workThreshold * 3 && wasAtWork && !leavingWorkNotified) {
             leavingWorkNotified = true;
             wasAtWork = false;
             sendLocalNotification(
