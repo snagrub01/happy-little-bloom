@@ -112,9 +112,10 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
       if (settings.bagOut.enabled) {
         const home = loadHomeLocation();
         if (home) {
+          const homeThreshold = getLeavingThresholdMiles(home.radiusFeet);
           const distHome = distanceMiles(latitude, longitude, home.lat, home.lon);
 
-          if (distHome <= HOME_THRESHOLD_MILES && !homeNotified) {
+          if (distHome <= homeThreshold && !homeNotified) {
             homeNotified = true;
             const delayMin = parseInt(settings.bagOut.timing, 10) || 5;
             const delayMs = delayMin * 60 * 1000;
