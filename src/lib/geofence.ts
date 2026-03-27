@@ -150,7 +150,7 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
             wasAtHome = true;
             leavingHomeNotified = false;
           }
-          if (distHome > HOME_THRESHOLD_MILES * 3 && wasAtHome && !leavingHomeNotified) {
+          if (distHome > homeThreshold2 * 3 && wasAtHome && !leavingHomeNotified) {
             leavingHomeNotified = true;
             wasAtHome = false;
             sendLocalNotification(
