@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import GeofenceMap from "@/components/GeofenceMap";
 import { motion } from "framer-motion";
 import { saveHomeLocation, loadHomeLocation, clearHomeLocation, reverseGeocode, type HomeLocation } from "@/lib/home-location";
 import { toast } from "sonner";
@@ -124,6 +125,7 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
                 <span>1,800 ft</span>
               </div>
             </div>
+            <GeofenceMap lat={home.lat} lon={home.lon} radiusFeet={home.radiusFeet || 500} />
           </div>
         ) : (
           <div className="mt-2 pt-3 border-t border-border space-y-2">

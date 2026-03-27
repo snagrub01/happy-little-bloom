@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Slider } from "@/components/ui/slider";
+import GeofenceMap from "@/components/GeofenceMap";
 import { motion } from "framer-motion";
 import { saveWorkLocation, loadWorkLocation, clearWorkLocation, type WorkLocation } from "@/lib/work-location";
 import { reverseGeocode } from "@/lib/home-location";
@@ -125,6 +126,7 @@ const WorkLocationCard = ({ delay = 0.14 }: Props) => {
                 <span>1,800 ft</span>
               </div>
             </div>
+            <GeofenceMap lat={work.lat} lon={work.lon} radiusFeet={work.radiusFeet || 500} />
           </div>
         ) : (
           <div className="mt-2 pt-3 border-t border-border space-y-2">
