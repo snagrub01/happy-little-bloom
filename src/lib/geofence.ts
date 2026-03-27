@@ -45,7 +45,11 @@ function getStoreThresholdMiles(storeId: string, geofences: Map<string, number>,
   return getThresholdMiles(fallbackTiming);
 }
 
-const HOME_THRESHOLD_MILES = 0.05; // ~250ft
+const DEFAULT_LEAVING_RADIUS_FEET = 500;
+
+function getLeavingThresholdMiles(radiusFeet?: number): number {
+  return (radiusFeet || DEFAULT_LEAVING_RADIUS_FEET) / 5280;
+}
 
 export function startGeofenceWatching(enabledStores: StoreResult[]) {
   if (!("geolocation" in navigator)) return;
