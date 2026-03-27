@@ -45,7 +45,11 @@ function getStoreThresholdMiles(storeId: string, geofences: Map<string, number>,
   return getThresholdMiles(fallbackTiming);
 }
 
-const HOME_THRESHOLD_MILES = 0.05; // ~250ft
+const DEFAULT_LEAVING_RADIUS_FEET = 500;
+
+function getLeavingThresholdMiles(radiusFeet?: number): number {
+  return (radiusFeet || DEFAULT_LEAVING_RADIUS_FEET) / 5280;
+}
 
 export function startGeofenceWatching(enabledStores: StoreResult[]) {
   if (!("geolocation" in navigator)) return;
@@ -108,9 +112,10 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
       if (settings.bagOut.enabled) {
         const home = loadHomeLocation();
         if (home) {
+          const homeThreshold = getLeavingThresholdMiles(home.radiusFeet);
           const distHome = distanceMiles(latitude, longitude, home.lat, home.lon);
 
-          if (distHome <= HOME_THRESHOLD_MILES && !homeNotified) {
+          if (distHome <= homeThreshold && !homeNotified) {
             homeNotified = true;
             const delayMin = parseInt(settings.bagOut.timing, 10) || 5;
             const delayMs = delayMin * 60 * 1000;
@@ -125,7 +130,7 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
           }
 
           // Reset when user leaves home area
-          if (distHome > HOME_THRESHOLD_MILES * 3 && homeNotified) {
+          if (distHome > homeThreshold * 3 && homeNotified) {
             homeNotified = false;
             if (bagOutTimer) {
               clearTimeout(bagOutTimer);
@@ -139,12 +144,13 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
       if (settings.leavingHome.enabled) {
         const home = loadHomeLocation();
         if (home) {
+          const homeThreshold2 = getLeavingThresholdMiles(home.radiusFeet);
           const distHome = distanceMiles(latitude, longitude, home.lat, home.lon);
-          if (distHome <= HOME_THRESHOLD_MILES) {
+          if (distHome <= homeThreshold2) {
             wasAtHome = true;
             leavingHomeNotified = false;
           }
-          if (distHome > HOME_THRESHOLD_MILES * 3 && wasAtHome && !leavingHomeNotified) {
+          if (distHome > homeThreshold2 * 3 && wasAtHome && !leavingHomeNotified) {
             leavingHomeNotified = true;
             wasAtHome = false;
             sendLocalNotification(
@@ -159,12 +165,13 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
       if (settings.leavingWork.enabled) {
         const work = loadWorkLocation();
         if (work) {
+          const workThreshold = getLeavingThresholdMiles(work.radiusFeet);
           const distWork = distanceMiles(latitude, longitude, work.lat, work.lon);
-          if (distWork <= HOME_THRESHOLD_MILES) {
+          if (distWork <= workThreshold) {
             wasAtWork = true;
             leavingWorkNotified = false;
           }
-          if (distWork > HOME_THRESHOLD_MILES * 3 && wasAtWork && !leavingWorkNotified) {
+          if (distWork > workThreshold * 3 && wasAtWork && !leavingWorkNotified) {
             leavingWorkNotified = true;
             wasAtWork = false;
             sendLocalNotification(

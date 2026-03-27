@@ -4,6 +4,7 @@ export interface WorkLocation {
   lat: number;
   lon: number;
   label: string;
+  radiusFeet?: number; // leaving geofence radius in feet (default 500)
 }
 
 export function saveWorkLocation(loc: WorkLocation) {
