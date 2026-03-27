@@ -126,6 +126,7 @@ const WorkLocationCard = ({ delay = 0.14 }: Props) => {
                 <span>1,800 ft</span>
               </div>
             </div>
+            <GeofenceMap lat={work.lat} lon={work.lon} radiusFeet={work.radiusFeet || 500} />
           </div>
         ) : (
           <div className="mt-2 pt-3 border-t border-border space-y-2">
