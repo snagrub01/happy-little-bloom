@@ -94,7 +94,7 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
         </div>
 
         {home ? (
-          <div className="mt-2 pt-3 border-t border-border">
+          <div className="mt-2 pt-3 border-t border-border space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2 min-w-0">
                 <MapPin className="w-3.5 h-3.5 text-primary shrink-0" />
@@ -103,6 +103,26 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
               <Button variant="ghost" size="sm" onClick={handleClear} className="h-7 px-2 text-muted-foreground">
                 <X className="w-3.5 h-3.5" />
               </Button>
+            </div>
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-muted-foreground">Leaving geofence radius:</span>
+                <span className="text-xs font-semibold text-foreground">{home.radiusFeet || 500} ft</span>
+              </div>
+              <Slider
+                value={[home.radiusFeet || 500]}
+                onValueChange={([v]) => {
+                  const updated = { ...home, radiusFeet: v };
+                  setHome(updated);
+                  saveHomeLocation(updated);
+                }}
+                min={25} max={1800} step={25}
+                className="w-full"
+              />
+              <div className="flex justify-between text-[10px] text-muted-foreground">
+                <span>25 ft</span>
+                <span>1,800 ft</span>
+              </div>
             </div>
           </div>
         ) : (
