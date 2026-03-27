@@ -3,6 +3,7 @@ import { Briefcase, Navigation, X, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Slider } from "@/components/ui/slider";
 import { motion } from "framer-motion";
 import { saveWorkLocation, loadWorkLocation, clearWorkLocation, type WorkLocation } from "@/lib/work-location";
 import { reverseGeocode } from "@/lib/home-location";
