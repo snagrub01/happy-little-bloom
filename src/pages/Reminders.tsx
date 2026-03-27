@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
-import { Bell, ShoppingBag, Car, Droplets, Clock, Baby, Tag } from "lucide-react";
+import { Bell, ShoppingBag, Car, Droplets, Clock, Baby, Tag, LogOut } from "lucide-react";
 import { motion } from "framer-motion";
 import HomeLocationCard from "@/components/HomeLocationCard";
+import WorkLocationCard from "@/components/WorkLocationCard";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -20,12 +21,14 @@ const Reminders = () => {
   const [bagOut, setBagOut] = useState(saved.bagOut);
   const [washReminder, setWashReminder] = useState(saved.washReminder);
   const [couponReminder, setCouponReminder] = useState(saved.couponReminder);
+  const [leavingHome, setLeavingHome] = useState(saved.leavingHome);
+  const [leavingWork, setLeavingWork] = useState(saved.leavingWork);
 
   // Persist settings on change
   useEffect(() => {
-    const settings = { bagIn, secondaryReminder, bagOut, washReminder, couponReminder };
+    const settings = { bagIn, secondaryReminder, bagOut, washReminder, couponReminder, leavingHome, leavingWork };
     saveReminderSettings(settings);
-  }, [bagIn, secondaryReminder, bagOut, washReminder, couponReminder]);
+  }, [bagIn, secondaryReminder, bagOut, washReminder, couponReminder, leavingHome, leavingWork]);
 
   // Re-start geofence when bag-in settings change
   useEffect(() => {

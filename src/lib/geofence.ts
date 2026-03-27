@@ -134,6 +134,46 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
           }
         }
       }
+
+      // --- Leaving Home reminder ---
+      if (settings.leavingHome.enabled) {
+        const home = loadHomeLocation();
+        if (home) {
+          const distHome = distanceMiles(latitude, longitude, home.lat, home.lon);
+          if (distHome <= HOME_THRESHOLD_MILES) {
+            wasAtHome = true;
+            leavingHomeNotified = false;
+          }
+          if (distHome > HOME_THRESHOLD_MILES * 3 && wasAtHome && !leavingHomeNotified) {
+            leavingHomeNotified = true;
+            wasAtHome = false;
+            sendLocalNotification(
+              "🛍️ Heading out?",
+              "Don't forget to open Bag Au Pair before you shop!"
+            );
+          }
+        }
+      }
+
+      // --- Leaving Work reminder ---
+      if (settings.leavingWork.enabled) {
+        const work = loadWorkLocation();
+        if (work) {
+          const distWork = distanceMiles(latitude, longitude, work.lat, work.lon);
+          if (distWork <= HOME_THRESHOLD_MILES) {
+            wasAtWork = true;
+            leavingWorkNotified = false;
+          }
+          if (distWork > HOME_THRESHOLD_MILES * 3 && wasAtWork && !leavingWorkNotified) {
+            leavingWorkNotified = true;
+            wasAtWork = false;
+            sendLocalNotification(
+              "🛍️ Leaving work?",
+              "Stopping at the store on the way home? Open Bag Au Pair so your reminders are ready!"
+            );
+          }
+        }
+      }
     },
     undefined,
     { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
@@ -149,6 +189,10 @@ export function stopGeofenceWatching() {
   secondaryTimers.forEach((t) => clearTimeout(t));
   secondaryTimers.clear();
   homeNotified = false;
+  wasAtHome = false;
+  wasAtWork = false;
+  leavingHomeNotified = false;
+  leavingWorkNotified = false;
   if (bagOutTimer) {
     clearTimeout(bagOutTimer);
     bagOutTimer = null;
