@@ -144,8 +144,9 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
       if (settings.leavingHome.enabled) {
         const home = loadHomeLocation();
         if (home) {
+          const homeThreshold2 = getLeavingThresholdMiles(home.radiusFeet);
           const distHome = distanceMiles(latitude, longitude, home.lat, home.lon);
-          if (distHome <= HOME_THRESHOLD_MILES) {
+          if (distHome <= homeThreshold2) {
             wasAtHome = true;
             leavingHomeNotified = false;
           }
