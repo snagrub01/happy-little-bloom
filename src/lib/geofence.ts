@@ -130,7 +130,7 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
           }
 
           // Reset when user leaves home area
-          if (distHome > HOME_THRESHOLD_MILES * 3 && homeNotified) {
+          if (distHome > homeThreshold * 3 && homeNotified) {
             homeNotified = false;
             if (bagOutTimer) {
               clearTimeout(bagOutTimer);
