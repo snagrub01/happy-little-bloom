@@ -2,6 +2,7 @@ import type { StoreResult } from "./stores-api";
 import { sendLocalNotification, requestNotificationPermission, scheduleBagReminder } from "./notifications";
 import { loadReminderSettings } from "./reminder-persistence";
 import { loadHomeLocation } from "./home-location";
+import { loadWorkLocation } from "./work-location";
 import { loadStoreGeofences } from "./store-persistence";
 import { gentleVibrate } from "./vibration";
 
@@ -10,6 +11,10 @@ let notifiedStoreIds = new Set<string>();
 let secondaryTimers = new Map<string, ReturnType<typeof setTimeout>>();
 let homeNotified = false;
 let bagOutTimer: ReturnType<typeof setTimeout> | null = null;
+let wasAtHome = false;
+let wasAtWork = false;
+let leavingHomeNotified = false;
+let leavingWorkNotified = false;
 
 function distanceMiles(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 3958.8;
