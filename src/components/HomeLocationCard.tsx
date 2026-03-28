@@ -88,7 +88,7 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
             <div>
               <p className="font-semibold text-sm text-card-foreground">Home Location</p>
               <p className="text-xs text-muted-foreground">
-                {home ? "Used for bag-return reminders" : "Set so bag-return works correctly"}
+                {home ? "Reminds you to open the app when leaving" : "Set so leaving-home reminder works"}
               </p>
             </div>
           </div>
