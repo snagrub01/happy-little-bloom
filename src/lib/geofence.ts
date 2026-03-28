@@ -55,7 +55,14 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
   if (!("geolocation" in navigator)) return;
   stopGeofenceWatching();
 
-  if (enabledStores.length === 0) return;
+  const settings = loadReminderSettings();
+  const hasStores = enabledStores.length > 0 && settings.bagIn.enabled;
+  const hasLeavingHome = settings.leavingHome.enabled && !!loadHomeLocation();
+  const hasLeavingWork = settings.leavingWork.enabled && !!loadWorkLocation();
+  const hasBagOut = settings.bagOut.enabled && !!loadHomeLocation();
+
+  // Nothing to watch
+  if (!hasStores && !hasLeavingHome && !hasLeavingWork && !hasBagOut) return;
 
   requestNotificationPermission();
 

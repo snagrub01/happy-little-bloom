@@ -30,16 +30,12 @@ const Reminders = () => {
     saveReminderSettings(settings);
   }, [bagIn, secondaryReminder, bagOut, washReminder, couponReminder, leavingHome, leavingWork]);
 
-  // Re-start geofence when bag-in settings change
+  // Re-start geofence when any geofence-related setting changes
   useEffect(() => {
-    if (bagIn.enabled) {
-      const { stores, enabled } = loadStoreData();
-      const enabledStores = stores.filter((s) => enabled.has(s.id));
-      if (enabledStores.length > 0) {
-        startGeofenceWatching(enabledStores);
-      }
-    }
-  }, [bagIn]);
+    const { stores, enabled } = loadStoreData();
+    const enabledStores = stores.filter((s) => enabled.has(s.id));
+    startGeofenceWatching(enabledStores);
+  }, [bagIn, leavingHome, leavingWork, bagOut]);
 
   // Schedule bag-return reminder when enabled
   useEffect(() => {
