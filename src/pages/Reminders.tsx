@@ -325,6 +325,11 @@ const Reminders = () => {
           </Card>
         </motion.div>
 
+        {/* Geofence Debug Panel */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}>
+          <GeofenceDebugPanel />
+        </motion.div>
+
         {/* Info note */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className="p-4 border border-border bg-accent/50">
