@@ -6,18 +6,34 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return result === "granted";
 }
 
-export async function sendLocalNotification(title: string, body: string) {
+export async function sendLocalNotification(title: string, body: string, options?: { urgent?: boolean }) {
   if (!("Notification" in window) || Notification.permission !== "granted") return;
+
+  const isUrgent = options?.urgent ?? false;
 
   // Android PWAs require service worker notifications (new Notification() doesn't work)
   if ("serviceWorker" in navigator) {
     try {
       const registration = await navigator.serviceWorker.ready;
-      await registration.showNotification(title, {
+      const notifOptions: NotificationOptions & { actions?: Array<{ action: string; title: string }>; requireInteraction?: boolean; tag?: string; renotify?: boolean; urgency?: string } = {
         body,
         icon: "/pwa-icon-192.png",
         badge: "/pwa-icon-192.png",
-      });
+      };
+
+      if (isUrgent) {
+        // High-priority notification that persists on screen & lock screen
+        notifOptions.requireInteraction = true;
+        notifOptions.tag = "bagaupair-urgent-" + Date.now();
+        notifOptions.renotify = true;
+        notifOptions.vibrate = [300, 100, 300, 100, 300]; // strong pattern
+        notifOptions.actions = [
+          { action: "open", title: "✅ Yes, Open App" },
+          { action: "dismiss", title: "❌ No" },
+        ];
+      }
+
+      await registration.showNotification(title, notifOptions);
       return;
     } catch (e) {
       // Fall back to standard Notification API
@@ -28,6 +44,7 @@ export async function sendLocalNotification(title: string, body: string) {
     body,
     icon: "/pwa-icon-192.png",
     badge: "/pwa-icon-192.png",
+    requireInteraction: isUrgent,
   });
 }
 
