@@ -13,6 +13,7 @@ import { requestNotificationPermission, scheduleBagReminder, sendLocalNotificati
 import { startGeofenceWatching } from "@/lib/geofence";
 import { loadStoreData } from "@/lib/store-persistence";
 import { toast } from "sonner";
+import GeofenceDebugPanel from "@/components/GeofenceDebugPanel";
 
 const Reminders = () => {
   const saved = loadReminderSettings();
@@ -322,6 +323,11 @@ const Reminders = () => {
               Test
             </Button>
           </Card>
+        </motion.div>
+
+        {/* Geofence Debug Panel */}
+        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.28 }}>
+          <GeofenceDebugPanel />
         </motion.div>
 
         {/* Info note */}
