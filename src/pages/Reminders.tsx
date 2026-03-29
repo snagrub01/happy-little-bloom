@@ -13,6 +13,7 @@ import { requestNotificationPermission, scheduleBagReminder, sendLocalNotificati
 import { startGeofenceWatching } from "@/lib/geofence";
 import { loadStoreData } from "@/lib/store-persistence";
 import { toast } from "sonner";
+import GeofenceDebugPanel from "@/components/GeofenceDebugPanel";
 
 const Reminders = () => {
   const saved = loadReminderSettings();
