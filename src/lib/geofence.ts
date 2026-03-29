@@ -183,8 +183,9 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
             leavingWorkNotified = true;
             wasAtWork = false;
             sendLocalNotification(
-              "🛍️ Leaving work?",
-              "Stopping at the store on the way home? Open Bag Au Pair so your reminders are ready!"
+              "🛍️ Open Bag Au Pair?",
+              "Leaving work — stopping at the store? Open Bag Au Pair so your reminders are ready!",
+              { urgent: true }
             );
           }
         }
