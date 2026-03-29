@@ -15,7 +15,7 @@ export async function sendLocalNotification(title: string, body: string, options
   if ("serviceWorker" in navigator) {
     try {
       const registration = await navigator.serviceWorker.ready;
-      const notifOptions: NotificationOptions & { actions?: Array<{ action: string; title: string }>; requireInteraction?: boolean; tag?: string; renotify?: boolean; urgency?: string } = {
+      const notifOptions: NotificationOptions & { actions?: Array<{ action: string; title: string }>; requireInteraction?: boolean; tag?: string; renotify?: boolean; vibrate?: number[] } = {
         body,
         icon: "/pwa-icon-192.png",
         badge: "/pwa-icon-192.png",
