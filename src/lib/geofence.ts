@@ -161,8 +161,9 @@ export function startGeofenceWatching(enabledStores: StoreResult[]) {
             leavingHomeNotified = true;
             wasAtHome = false;
             sendLocalNotification(
-              "🛍️ Heading out?",
-              "Don't forget to open Bag Au Pair before you shop!"
+              "🛍️ Open Bag Au Pair?",
+              "You're leaving home — open Bag Au Pair so your store reminders are ready!",
+              { urgent: true }
             );
           }
         }
