@@ -46,8 +46,8 @@ export default defineConfig(({ mode }) => ({
           },
         ],
       },
-      importScripts: ["sw-custom.js"],
       workbox: {
+        importScripts: ["sw-custom.js"],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff2}"],
         navigateFallbackDenylist: [/^\/~oauth/],
         runtimeCaching: [
