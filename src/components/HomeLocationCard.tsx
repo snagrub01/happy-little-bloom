@@ -7,6 +7,8 @@ import { Slider } from "@/components/ui/slider";
 import GeofenceMap from "@/components/GeofenceMap";
 import { motion } from "framer-motion";
 import { saveHomeLocation, loadHomeLocation, clearHomeLocation, reverseGeocode, type HomeLocation } from "@/lib/home-location";
+import { loadStoreData } from "@/lib/store-persistence";
+import { startGeofenceWatching } from "@/lib/geofence";
 import { toast } from "sonner";
 
 interface Props {
@@ -18,6 +20,12 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
   const [loading, setLoading] = useState(false);
   const [manualAddress, setManualAddress] = useState("");
   const [showManual, setShowManual] = useState(false);
+
+  const restartGeofenceWatch = () => {
+    const { stores, enabled } = loadStoreData();
+    const enabledStores = stores.filter((s) => enabled.has(s.id));
+    startGeofenceWatching(enabledStores);
+  };
 
   const handleUseCurrentLocation = async () => {
     if (!("geolocation" in navigator)) {
@@ -32,6 +40,7 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
         const loc: HomeLocation = { lat: latitude, lon: longitude, label };
         saveHomeLocation(loc);
         setHome(loc);
+        restartGeofenceWatch();
         setLoading(false);
         toast.success("Home location saved!");
       },
@@ -62,6 +71,7 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
       const loc: HomeLocation = { lat: parseFloat(lat), lon: parseFloat(lon), label };
       saveHomeLocation(loc);
       setHome(loc);
+      restartGeofenceWatch();
       setShowManual(false);
       setManualAddress("");
       toast.success("Home location saved!");
@@ -74,6 +84,7 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
   const handleClear = () => {
     clearHomeLocation();
     setHome(null);
+    restartGeofenceWatch();
     toast("Home location removed");
   };
 
@@ -116,6 +127,7 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
                   const updated = { ...home, radiusFeet: v };
                   setHome(updated);
                   saveHomeLocation(updated);
+                  restartGeofenceWatch();
                 }}
                 min={25} max={1800} step={25}
                 className="w-full"
