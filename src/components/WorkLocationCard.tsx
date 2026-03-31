@@ -8,6 +8,8 @@ import GeofenceMap from "@/components/GeofenceMap";
 import { motion } from "framer-motion";
 import { saveWorkLocation, loadWorkLocation, clearWorkLocation, type WorkLocation } from "@/lib/work-location";
 import { reverseGeocode } from "@/lib/home-location";
+import { loadStoreData } from "@/lib/store-persistence";
+import { startGeofenceWatching } from "@/lib/geofence";
 import { toast } from "sonner";
 
 interface Props {
@@ -19,6 +21,12 @@ const WorkLocationCard = ({ delay = 0.14 }: Props) => {
   const [loading, setLoading] = useState(false);
   const [manualAddress, setManualAddress] = useState("");
   const [showManual, setShowManual] = useState(false);
+
+  const restartGeofenceWatch = () => {
+    const { stores, enabled } = loadStoreData();
+    const enabledStores = stores.filter((s) => enabled.has(s.id));
+    startGeofenceWatching(enabledStores);
+  };
 
   const handleUseCurrentLocation = async () => {
     if (!("geolocation" in navigator)) {
@@ -33,6 +41,7 @@ const WorkLocationCard = ({ delay = 0.14 }: Props) => {
         const loc: WorkLocation = { lat: latitude, lon: longitude, label };
         saveWorkLocation(loc);
         setWork(loc);
+        restartGeofenceWatch();
         setLoading(false);
         toast.success("Work location saved!");
       },
@@ -63,6 +72,7 @@ const WorkLocationCard = ({ delay = 0.14 }: Props) => {
       const loc: WorkLocation = { lat: parseFloat(lat), lon: parseFloat(lon), label };
       saveWorkLocation(loc);
       setWork(loc);
+      restartGeofenceWatch();
       setShowManual(false);
       setManualAddress("");
       toast.success("Work location saved!");
@@ -75,6 +85,7 @@ const WorkLocationCard = ({ delay = 0.14 }: Props) => {
   const handleClear = () => {
     clearWorkLocation();
     setWork(null);
+    restartGeofenceWatch();
     toast("Work location removed");
   };
 
@@ -117,6 +128,7 @@ const WorkLocationCard = ({ delay = 0.14 }: Props) => {
                   const updated = { ...work, radiusFeet: v };
                   setWork(updated);
                   saveWorkLocation(updated);
+                  restartGeofenceWatch();
                 }}
                 min={25} max={1800} step={25}
                 className="w-full"
