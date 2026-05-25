@@ -20,25 +20,15 @@ const queryClient = new QueryClient();
 
 const App = () => {
   useEffect(() => {
-    const restartGeofenceWatch = () => {
-      const { stores, enabled } = loadStoreData();
-      const enabledStores = stores.filter((s) => enabled.has(s.id));
-      startGeofenceWatching(enabledStores);
-    };
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        restartGeofenceWatch();
-      }
-    };
-
-    restartGeofenceWatch();
-    window.addEventListener("focus", restartGeofenceWatch);
-    document.addEventListener("visibilitychange", handleVisibilityChange);
+    // Start the geofence watcher once on app mount.
+    // On native (Capacitor) this uses background-geolocation and keeps
+    // running when the app is backgrounded or the screen is locked, so we
+    // don't need the visibilitychange/focus restart dance anymore.
+    const { stores, enabled } = loadStoreData();
+    const enabledStores = stores.filter((s) => enabled.has(s.id));
+    startGeofenceWatching(enabledStores);
 
     return () => {
-      window.removeEventListener("focus", restartGeofenceWatch);
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
       stopGeofenceWatching();
     };
   }, []);
