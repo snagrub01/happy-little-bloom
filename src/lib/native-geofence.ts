@@ -23,7 +23,6 @@ let watcherId: string | null = null;
 export async function startNativeWatcher(onLocation: LocationCallback): Promise<boolean> {
   if (!isNative()) return false;
   try {
-    const { BackgroundGeolocation } = await import("@capacitor-community/background-geolocation");
     await stopNativeWatcher();
     watcherId = await BackgroundGeolocation.addWatcher(
       {
@@ -34,10 +33,7 @@ export async function startNativeWatcher(onLocation: LocationCallback): Promise<
         distanceFilter: 20, // meters between updates
       },
       (location, error) => {
-        if (error) {
-          // permission denied or unavailable — silently stop
-          return;
-        }
+        if (error) return;
         if (!location) return;
         onLocation({ latitude: location.latitude, longitude: location.longitude });
       }
@@ -51,7 +47,6 @@ export async function startNativeWatcher(onLocation: LocationCallback): Promise<
 export async function stopNativeWatcher() {
   if (!watcherId) return;
   try {
-    const { BackgroundGeolocation } = await import("@capacitor-community/background-geolocation");
     await BackgroundGeolocation.removeWatcher({ id: watcherId });
   } catch {}
   watcherId = null;
