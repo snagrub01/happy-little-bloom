@@ -80,7 +80,28 @@ const Reminders = () => {
         </p>
       </motion.div>
 
+
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+        <Card className="p-4 mb-4 border border-border flex items-center justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-sm font-semibold text-card-foreground">Enable notifications</p>
+            <p className="text-xs text-muted-foreground">Required for reminders to work on your phone</p>
+          </div>
+          <Button
+            size="sm"
+            onClick={async () => {
+              const ok = await requestNotificationPermission();
+              if (ok) toast.success("Notifications enabled!");
+              else toast.error("Permission denied — enable in your phone's Settings");
+            }}
+          >
+            Enable
+          </Button>
+        </Card>
+      </motion.div>
+
       <div className="space-y-4">
+
         {/* Take bag into store */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
           <Card className="p-4 border border-border">
