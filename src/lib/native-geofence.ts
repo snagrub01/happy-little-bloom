@@ -1,4 +1,10 @@
 import { isNative } from "./native";
+import { registerPlugin } from "@capacitor/core";
+import type { BackgroundGeolocationPlugin } from "@capacitor-community/background-geolocation";
+
+const BackgroundGeolocation = registerPlugin<BackgroundGeolocationPlugin>(
+  "BackgroundGeolocation"
+);
 
 export interface NativeLocation {
   latitude: number;
