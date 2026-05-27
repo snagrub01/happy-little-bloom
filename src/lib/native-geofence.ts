@@ -21,25 +21,41 @@ let watcherId: string | null = null;
  * iOS background location updates).
  */
 export async function startNativeWatcher(onLocation: LocationCallback): Promise<boolean> {
-  if (!isNative()) return false;
+  if (!isNative()) {
+    console.log("[native-geofence] not native — skipping native watcher");
+    return false;
+  }
   try {
     await stopNativeWatcher();
+    console.log("[native-geofence] registering BackgroundGeolocation watcher");
     watcherId = await BackgroundGeolocation.addWatcher(
       {
-        backgroundMessage: "Bag Au Pair is watching for your stores in the background.",
+        backgroundMessage:
+          "Bag Au Pair is watching for your stores in the background.",
         backgroundTitle: "Bag Au Pair",
         requestPermissions: true,
         stale: false,
         distanceFilter: 20, // meters between updates
       },
       (location, error) => {
-        if (error) return;
+        if (error) {
+          console.warn("[native-geofence] watcher error", error);
+          return;
+        }
         if (!location) return;
+        console.log(
+          "[native-geofence] bg location lat=" +
+            location.latitude.toFixed(5) +
+            " lon=" +
+            location.longitude.toFixed(5)
+        );
         onLocation({ latitude: location.latitude, longitude: location.longitude });
       }
     );
+    console.log("[native-geofence] watcher registered id=" + watcherId);
     return true;
-  } catch {
+  } catch (e) {
+    console.error("[native-geofence] failed to register watcher", e);
     return false;
   }
 }
@@ -47,7 +63,10 @@ export async function startNativeWatcher(onLocation: LocationCallback): Promise<
 export async function stopNativeWatcher() {
   if (!watcherId) return;
   try {
+    console.log("[native-geofence] removing watcher id=" + watcherId);
     await BackgroundGeolocation.removeWatcher({ id: watcherId });
-  } catch {}
+  } catch (e) {
+    console.warn("[native-geofence] removeWatcher failed", e);
+  }
   watcherId = null;
 }
