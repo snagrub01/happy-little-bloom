@@ -193,9 +193,21 @@ export async function startGeofenceWatching(enabledStores: StoreResult[]) {
   const hasLeavingWork = settings.leavingWork.enabled && !!loadWorkLocation();
   const hasBagOut = settings.bagOut.enabled && !!loadHomeLocation();
   if (!hasStores && !hasLeavingHome && !hasLeavingWork && !hasBagOut) {
+    console.log("[geofence] no triggers enabled — stopping watcher");
     await stopGeofenceWatching();
     return;
   }
+
+  console.log(
+    "[geofence] startGeofenceWatching stores=" +
+      enabledStores.length +
+      " leavingHome=" +
+      hasLeavingHome +
+      " leavingWork=" +
+      hasLeavingWork +
+      " bagOut=" +
+      hasBagOut
+  );
 
   await stopGeofenceWatching();
   requestNotificationPermission();
@@ -205,17 +217,24 @@ export async function startGeofenceWatching(enabledStores: StoreResult[]) {
     const ok = await startNativeWatcher(({ latitude, longitude }) => {
       handleLocation(latitude, longitude, enabledStores);
     });
-    if (ok) return;
-    // fall through to web watcher if native init failed
+    if (ok) {
+      console.log("[geofence] using NATIVE background watcher");
+      return;
+    }
+    console.warn("[geofence] native watcher failed, falling back to web");
   }
 
-  if (!("geolocation" in navigator)) return;
+  if (!("geolocation" in navigator)) {
+    console.warn("[geofence] no geolocation API available");
+    return;
+  }
+  console.log("[geofence] starting WEB watchPosition (foreground only)");
   webWatchId = navigator.geolocation.watchPosition(
     (position) => {
       const { latitude, longitude } = position.coords;
       handleLocation(latitude, longitude, enabledStores);
     },
-    undefined,
+    (err) => console.warn("[geofence] web watchPosition error", err),
     { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
   );
 }
