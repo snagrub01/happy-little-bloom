@@ -1,13 +1,10 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
-import { useEffect } from "react";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import BottomNav from "@/components/BottomNav";
 import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
-import { loadStoreData } from "@/lib/store-persistence";
-import { startGeofenceWatching, stopGeofenceWatching } from "@/lib/geofence";
 import Index from "./pages/Index.tsx";
 import Stores from "./pages/Stores.tsx";
 import ShoppingList from "./pages/ShoppingList.tsx";
@@ -18,20 +15,11 @@ import NotFound from "./pages/NotFound.tsx";
 
 const queryClient = new QueryClient();
 
+// NOTE: Geofence + notification initialization is intentionally NOT in this
+// component. It runs from `src/main.tsx` → `initAppServices()` so it fires
+// at app process start, independent of which screen mounts, and the native
+// background watcher is never torn down on component unmount.
 const App = () => {
-  useEffect(() => {
-    // Start the geofence watcher once on app mount.
-    // On native (Capacitor) this uses background-geolocation and keeps
-    // running when the app is backgrounded or the screen is locked, so we
-    // don't need the visibilitychange/focus restart dance anymore.
-    const { stores, enabled } = loadStoreData();
-    const enabledStores = stores.filter((s) => enabled.has(s.id));
-    startGeofenceWatching(enabledStores);
-
-    return () => {
-      stopGeofenceWatching();
-    };
-  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>

@@ -39,14 +39,16 @@ export async function sendLocalNotification(
   options?: { urgent?: boolean }
 ) {
   const isUrgent = options?.urgent ?? false;
+  console.log("[notifications] sendLocalNotification title=" + title + " urgent=" + isUrgent);
 
   if (isNative()) {
     try {
       const { LocalNotifications } = await import("@capacitor/local-notifications");
+      const id = genId();
       await LocalNotifications.schedule({
         notifications: [
           {
-            id: genId(),
+            id,
             title,
             body,
             schedule: { at: new Date(Date.now() + 100) },
@@ -55,8 +57,10 @@ export async function sendLocalNotification(
           },
         ],
       });
+      console.log("[notifications] native scheduled id=" + id);
       return;
-    } catch {
+    } catch (e) {
+      console.warn("[notifications] native schedule failed", e);
       // fall through to web fallback
     }
   }
