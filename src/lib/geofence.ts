@@ -181,11 +181,12 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
         state.leavingWorkNotified = true;
         state.wasAtWork = false;
         dirty = true;
+        console.log("[geofence] TRIGGER leaving-work dist=" + distWork.toFixed(3) + "mi");
         sendLocalNotification(
           "🛍️ Open Bag Au Pair?",
           "Leaving work — stopping at the store? Open Bag Au Pair so your reminders are ready!",
           { urgent: true }
-        );
+        ).catch((err) => console.error("[geofence] leaving-work notify failed", err));
       }
     }
   }
