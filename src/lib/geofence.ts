@@ -154,11 +154,12 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
         state.leavingHomeNotified = true;
         state.wasAtHome = false;
         dirty = true;
+        console.log("[geofence] TRIGGER leaving-home dist=" + distHome.toFixed(3) + "mi");
         sendLocalNotification(
           "🛍️ Open Bag Au Pair?",
           "You're leaving home — open Bag Au Pair so your store reminders are ready!",
           { urgent: true }
-        );
+        ).catch((err) => console.error("[geofence] leaving-home notify failed", err));
       }
     }
   }
