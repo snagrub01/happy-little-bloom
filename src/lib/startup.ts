@@ -11,7 +11,7 @@
  */
 import { loadStoreData } from "./store-persistence";
 import { startGeofenceWatching } from "./geofence";
-import { requestNotificationPermission } from "./notifications";
+import { requestNotificationPermission, ensureNotificationChannel } from "./notifications";
 import { isNative } from "./native";
 
 let started = false;
@@ -25,18 +25,18 @@ export async function initAppServices() {
 
   console.log("[startup] initAppServices begin (native=" + isNative() + ")");
 
-  // Pre-request notification permission. On native this is safe to call at
-  // startup (Capacitor surfaces the system dialog). On web it's a no-op
-  // unless permission was previously granted.
-  try {
-    const granted = await requestNotificationPermission();
-    console.log("[startup] notification permission granted=" + granted);
-  } catch (e) {
-    console.warn("[startup] notification permission error", e);
-  }
+  // Create the Android notification channel BEFORE requesting permission so
+  // that even if permission is granted later (via the Reminders button) the
+  // channel already exists and notifications can surface immediately.
+  ensureNotificationChannel()
+    .then(() => console.log("[startup] notification channel ready"))
+    .catch((e) => console.warn("[startup] channel setup error", e));
 
-  // Start the geofence watcher immediately at process start, independent of
-  // any UI mounting. On native this binds the background-geolocation
+  // Best-effort permission request — must NOT block geofence startup.
+  requestNotificationPermission()
+    .then((granted) => console.log("[startup] notification permission granted=" + granted))
+    .catch((e) => console.warn("[startup] notification permission error", e));
+
   // foreground service which keeps GPS alive when the app is closed.
   try {
     const { stores, enabled } = loadStoreData();

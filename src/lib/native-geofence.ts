@@ -14,6 +14,7 @@ export interface NativeLocation {
 type LocationCallback = (loc: NativeLocation) => void;
 
 let watcherId: string | null = null;
+let locationCount = 0;
 
 /**
  * Start a native background-geolocation watcher. Continues running when the
@@ -43,11 +44,11 @@ export async function startNativeWatcher(onLocation: LocationCallback): Promise<
           return;
         }
         if (!location) return;
+        locationCount++;
         console.log(
-          "[native-geofence] bg location lat=" +
-            location.latitude.toFixed(5) +
-            " lon=" +
-            location.longitude.toFixed(5)
+          "[native-geofence] bg location #" + locationCount +
+            " lat=" + location.latitude.toFixed(5) +
+            " lon=" + location.longitude.toFixed(5)
         );
         onLocation({ latitude: location.latitude, longitude: location.longitude });
       }

@@ -83,17 +83,21 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
 
       if (dist <= threshold && !notifiedStoreIds.has(store.id)) {
         notifiedStoreIds.add(store.id);
-        sendLocalNotification("🛍️ Don't forget your bags!", `You're near ${store.name} — grab your reusable bags!`);
+        console.log("[geofence] TRIGGER store=" + store.name + " dist=" + dist.toFixed(3) + "mi threshold=" + threshold.toFixed(3) + "mi");
+        sendLocalNotification("🛍️ Don't forget your bags!", `You're near ${store.name} — grab your reusable bags!`)
+          .catch((err) => console.error("[geofence] store notify failed", err));
 
         if (settings.couponReminder.enabled) {
           gentleVibrate();
-          sendLocalNotification("🏷️ Check for coupons!", `You're entering ${store.name} — open their app to check this week's deals!`);
+          sendLocalNotification("🏷️ Check for coupons!", `You're entering ${store.name} — open their app to check this week's deals!`)
+            .catch((err) => console.error("[geofence] coupon notify failed", err));
         }
 
         if (settings.secondaryReminder.enabled) {
           const delay = settings.secondaryReminder.delayMinutes * 60 * 1000;
           const timer = setTimeout(() => {
-            sendLocalNotification("🛍️ Bag Reminder (follow-up)", `Just checking — did you grab your bags for ${store.name}?`);
+            sendLocalNotification("🛍️ Bag Reminder (follow-up)", `Just checking — did you grab your bags for ${store.name}?`)
+              .catch((err) => console.error("[geofence] secondary notify failed", err));
             secondaryTimers.delete(store.id);
           }, delay);
           secondaryTimers.set(store.id, timer);
@@ -118,8 +122,10 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
         const delayMin = parseInt(settings.bagOut.timing, 10) || 5;
         const delayMs = delayMin * 60 * 1000;
 
+        console.log("[geofence] TRIGGER home-arrival delayMin=" + delayMin);
         bagOutTimer = setTimeout(() => {
-          sendLocalNotification("🚗 Put your bags back!", `You've been home for ${delayMin} minutes — time to put your reusable bags back in the car!`);
+          sendLocalNotification("🚗 Put your bags back!", `You've been home for ${delayMin} minutes — time to put your reusable bags back in the car!`)
+            .catch((err) => console.error("[geofence] bagOut notify failed", err));
           bagOutTimer = null;
         }, delayMs);
       }
@@ -148,11 +154,12 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
         state.leavingHomeNotified = true;
         state.wasAtHome = false;
         dirty = true;
+        console.log("[geofence] TRIGGER leaving-home dist=" + distHome.toFixed(3) + "mi");
         sendLocalNotification(
           "🛍️ Open Bag Au Pair?",
           "You're leaving home — open Bag Au Pair so your store reminders are ready!",
           { urgent: true }
-        );
+        ).catch((err) => console.error("[geofence] leaving-home notify failed", err));
       }
     }
   }
@@ -174,11 +181,12 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
         state.leavingWorkNotified = true;
         state.wasAtWork = false;
         dirty = true;
+        console.log("[geofence] TRIGGER leaving-work dist=" + distWork.toFixed(3) + "mi");
         sendLocalNotification(
           "🛍️ Open Bag Au Pair?",
           "Leaving work — stopping at the store? Open Bag Au Pair so your reminders are ready!",
           { urgent: true }
-        );
+        ).catch((err) => console.error("[geofence] leaving-work notify failed", err));
       }
     }
   }
