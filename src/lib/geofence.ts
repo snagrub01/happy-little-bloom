@@ -70,11 +70,6 @@ function getLeavingThresholdMiles(radiusFeet?: number): number {
 }
 
 function handleLocation(latitude: number, longitude: number, enabledStores: StoreResult[]) {
-  const settings = loadReminderSettings();
-  const geofences = loadStoreGeofences();
-  const state = loadState();
-  let dirty = false;
-
   // --- Store proximity alerts ---
   if (settings.bagIn.enabled) {
     for (const store of enabledStores) {
@@ -83,17 +78,21 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
 
       if (dist <= threshold && !notifiedStoreIds.has(store.id)) {
         notifiedStoreIds.add(store.id);
-        sendLocalNotification("🛍️ Don't forget your bags!", `You're near ${store.name} — grab your reusable bags!`);
+        console.log("[geofence] TRIGGER store=" + store.name + " dist=" + dist.toFixed(3) + "mi threshold=" + threshold.toFixed(3) + "mi");
+        sendLocalNotification("🛍️ Don't forget your bags!", `You're near ${store.name} — grab your reusable bags!`)
+          .catch((err) => console.error("[geofence] store notify failed", err));
 
         if (settings.couponReminder.enabled) {
           gentleVibrate();
-          sendLocalNotification("🏷️ Check for coupons!", `You're entering ${store.name} — open their app to check this week's deals!`);
+          sendLocalNotification("🏷️ Check for coupons!", `You're entering ${store.name} — open their app to check this week's deals!`)
+            .catch((err) => console.error("[geofence] coupon notify failed", err));
         }
 
         if (settings.secondaryReminder.enabled) {
           const delay = settings.secondaryReminder.delayMinutes * 60 * 1000;
           const timer = setTimeout(() => {
-            sendLocalNotification("🛍️ Bag Reminder (follow-up)", `Just checking — did you grab your bags for ${store.name}?`);
+            sendLocalNotification("🛍️ Bag Reminder (follow-up)", `Just checking — did you grab your bags for ${store.name}?`)
+              .catch((err) => console.error("[geofence] secondary notify failed", err));
             secondaryTimers.delete(store.id);
           }, delay);
           secondaryTimers.set(store.id, timer);
@@ -101,6 +100,11 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
       }
 
       if (dist > threshold * 3 && notifiedStoreIds.has(store.id)) {
+        notifiedStoreIds.delete(store.id);
+      }
+    }
+  }
+
         notifiedStoreIds.delete(store.id);
       }
     }
