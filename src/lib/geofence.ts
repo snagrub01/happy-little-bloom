@@ -70,6 +70,11 @@ function getLeavingThresholdMiles(radiusFeet?: number): number {
 }
 
 function handleLocation(latitude: number, longitude: number, enabledStores: StoreResult[]) {
+  const settings = loadReminderSettings();
+  const geofences = loadStoreGeofences();
+  const state = loadState();
+  let dirty = false;
+
   // --- Store proximity alerts ---
   if (settings.bagIn.enabled) {
     for (const store of enabledStores) {
