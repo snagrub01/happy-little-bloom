@@ -11,9 +11,6 @@
  */
 import { loadStoreData } from "./store-persistence";
 import { startGeofenceWatching } from "./geofence";
-import { requestNotificationPermission } from "./notifications";
-import { loadStoreData } from "./store-persistence";
-import { startGeofenceWatching } from "./geofence";
 import { requestNotificationPermission, ensureNotificationChannel } from "./notifications";
 import { isNative } from "./native";
 
