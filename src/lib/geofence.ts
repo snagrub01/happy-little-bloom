@@ -105,11 +105,6 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
     }
   }
 
-        notifiedStoreIds.delete(store.id);
-      }
-    }
-  }
-
   // --- Home arrival → bag-return reminder ---
   if (settings.bagOut.enabled) {
     const home = loadHomeLocation();
