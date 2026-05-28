@@ -1,77 +1,76 @@
+# Restore Reliable Notification Delivery
 
-# Fix Plan: Background GPS Tracking & Notifications via Capacitor
+## Root causes identified
 
-The root problem: browsers stop running JavaScript when the phone is locked or the app is closed, so `watchPosition` and `setTimeout` silently die. Fix: swap web APIs for Capacitor **native plugins** that the OS runs for us. UI, data, and settings stay the same — we only rewrite two library files.
+Reading `src/lib/notifications.ts`, `src/lib/native-geofence.ts`, `src/lib/geofence.ts`, `src/main.tsx`, `src/App.tsx`, `src/lib/startup.ts`, and `capacitor.config.ts`, three concrete bugs explain why notifications stopped firing after the migration:
 
----
+1. **No Android notification channel.** Android 8+ silently drops any notification whose `channelId` doesn't match a registered channel. We never call `LocalNotifications.createChannel(...)`, and we never set a `channelId` on scheduled notifications. On many devices this means the notification is accepted by the OS but never shown in the tray.
+2. **`schedule({ at: now + 100ms })` for "immediate" notifications.** The Capacitor LocalNotifications plugin treats `schedule.at` as a future alarm. With a 100 ms offset, if the app is foreground the notification is sometimes suppressed by the OS, and with no channel + no sound/priority it never surfaces. Immediate user-visible notifications should be scheduled without `schedule.at` (or `at: new Date(Date.now() + 1000)` *with* a channel) and with explicit `sound`, `smallIcon`, `channelId`.
+3. **`smallIcon: 'ic_stat_icon_config_sample'` references a drawable that doesn't exist** in the Android project (it's the Capacitor sample placeholder). When the small icon can't be resolved, Android 12+ drops the notification entirely. We need to fall back to the app icon and let the user replace it later.
 
-## What gets fixed
+Secondary issues:
 
-| # | Issue | Fix |
-|---|---|---|
-| 1 | `watchPosition` dies when screen locks | `@capacitor-community/background-geolocation` |
-| 2 | JS distance-math geofencing stops in background | Same plugin keeps GPS running natively |
-| 3 | `setTimeout`/`setInterval` reminders die when app closes | `@capacitor/local-notifications` scheduled delivery |
-| 4 | `visibilitychange` restart hack | Native watcher persists — remove the hack |
-| 5 | `capacitor.config.ts` points at Lovable preview URL | Remove `server.url` for production |
-| 6 | Missing iOS/Android background permissions | Add Info.plist + AndroidManifest entries |
-| 7 | Notification permission requested from `useEffect` (fails on iOS) | Trigger from a button click |
+4. `requestNotificationPermission()` is called from `initAppServices()` which runs *before* React mounts. On Android 13+ this is fine, but on iOS the system dialog must come from a user gesture — the "Enable notifications" button on `/reminders` already handles this, so startup permission request should be best-effort and never block geofence startup.
+5. No `LocalNotifications.addListener('localNotificationReceived' | 'localNotificationActionPerformed')` — we have zero visibility into whether the OS actually delivered.
+6. `genId()` mixes `Date.now() % 2147480000 + nextId` which can collide and exceed 32-bit signed range over time. Switch to a simple monotonically incrementing counter persisted in memory.
 
----
+## Fix plan (notifications only — GPS logic untouched)
 
-## Steps I'll do in Lovable
+### 1. `src/lib/notifications.ts` — rewrite scheduling
 
-**1. Install plugins**
-`@capacitor/local-notifications`, `@capacitor-community/background-geolocation`, `@capacitor/app`.
+- Add `ensureNotificationChannel()` that on native + Android calls `LocalNotifications.createChannel({ id: 'bagaupair-default', name: 'Bag Reminders', importance: 5, visibility: 1, sound: undefined, vibration: true, lights: true })`. Call it once, memoized.
+- `requestNotificationPermission()` — on native, call `ensureNotificationChannel()` after permission is granted. Log permission state.
+- `sendLocalNotification(title, body, opts)` — on native:
+  - Call `ensureNotificationChannel()`.
+  - Build payload with `channelId: 'bagaupair-default'`, `smallIcon: 'ic_stat_icon_config_sample'` removed (let Capacitor fall back to app icon), `largeIcon` omitted, `sound: undefined`, `extra`.
+  - **Do not pass `schedule.at` for immediate notifications.** Omitting `schedule` causes Capacitor to fire immediately.
+  - Wrap in try/catch; log the *exact* error (`e?.message`, `e?.code`) on failure.
+- `scheduleBagReminder` / `scheduleWashReminder` — keep `schedule.at` for future ones, add `channelId`, drop bogus `smallIcon`.
+- Replace `genId()` with a simple incrementing counter (`++nextId`) seeded from `Date.now() & 0x7fffffff >> 1`.
+- Add `LocalNotifications.addListener('localNotificationReceived', ...)` once at module init logging `[notifications] OS delivered id=...`.
 
-**2. New file `src/lib/native-geofence.ts`**
-Wraps `BackgroundGeolocation.addWatcher(...)`. Detects Capacitor at runtime; falls back to existing web `watchPosition` in browsers. Same enter/exit logic as today. Persists `wasAtHome`/`wasAtWork` to localStorage so flags survive app restarts.
+### 2. `src/lib/startup.ts` — make permission non-blocking + create channel early
 
-**3. Rewrite `src/lib/notifications.ts`**
-- `sendLocalNotification` → `LocalNotifications.schedule({ at: now })` on native, Web Notification fallback
-- `scheduleBagReminder(delayMin)` → OS-scheduled notification at `Date.now() + delayMs`
-- `scheduleWashReminder()` → OS-scheduled recurring every 14 days (fires whether app is open or not)
-- `requestNotificationPermission()` → `LocalNotifications.requestPermissions()` on native
+- `initAppServices()`: call `ensureNotificationChannel()` *before* requesting permission, so the channel exists even if permission is later granted via the Reminders button.
+- Wrap `requestNotificationPermission()` in `.catch()` so a rejection never prevents `startGeofenceWatching()` from running.
+- Add `[startup] channel ready / permission=...` logs.
 
-**4. Update `src/lib/geofence.ts`**
-Delegate to native-geofence on Capacitor; keep web logic as fallback. No call-site changes elsewhere.
+### 3. `src/lib/geofence.ts` — verify trigger path
 
-**5. Clean up `App.tsx`**
-Remove `visibilitychange`/`focus` restart dance — single mount call is enough.
+- Add `[geofence] TRIGGER store=<name> dist=<x>mi threshold=<y>mi` log immediately before each `sendLocalNotification(...)` call (store proximity, home arrival, leaving home, leaving work).
+- Wrap each `sendLocalNotification(...)` in `.then(() => log success).catch(err => console.error)` so we see exactly which call fails.
 
-**6. Fix `capacitor.config.ts`**
-Remove `server.url` so production native builds load from `dist/`.
+### 4. `src/lib/native-geofence.ts` — confirm callback fires
 
-**7. Add "Enable Notifications" button**
-On the Reminders page — iOS only grants permission from a user gesture.
+- Already logs each bg location. Add a counter so we can see "N location updates received in this session" — useful when buyer says "notifications never fired" we can tell if it was GPS or notifications.
 
----
+### 5. `src/pages/Reminders.tsx` — add a "Send test notification" button
 
-## What you do once, after I'm done (copy-paste)
+- Right next to the existing "Enable notifications" button, add a button that calls `sendLocalNotification('🧪 Test', 'If you see this in your tray, notifications work!')`. This lets the buyer verify the fix in one tap without driving to a store.
 
-After `git pull → npm install → npx cap add android`:
+### 6. Android manifest reminder (no code change in Lovable)
 
-**`android/app/src/main/AndroidManifest.xml`** — add inside `<manifest>`:
-```xml
-<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
-<uses-permission android:name="android.permission.ACCESS_BACKGROUND_LOCATION"/>
-<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-<uses-permission android:name="android.permission.FOREGROUND_SERVICE_LOCATION"/>
-```
+After `npx cap sync`, the user must ensure `AndroidManifest.xml` still has `POST_NOTIFICATIONS` (already documented). No new permissions required.
 
-(iOS Info.plist snippet provided if/when you add iOS.)
+## Files touched
 
-Then: `npm run build && npx cap sync android && npx cap open android` → Run.
+- `src/lib/notifications.ts` — rewrite scheduling, add channel, add receive listener
+- `src/lib/startup.ts` — non-blocking permission, early channel creation
+- `src/lib/geofence.ts` — trigger logs + per-call error handling
+- `src/lib/native-geofence.ts` — location counter
+- `src/pages/Reminders.tsx` — "Send test notification" debug button
 
-Every future Lovable change: `git pull && npm install && npm run build && npx cap sync` — no more permission edits.
+## How we'll verify
 
----
+After `git pull && npm install && npm run build && npx cap sync android && npx cap run android`:
 
-## Honest scope
-- **My work in Lovable:** ~1 hour, 4 files touched.
-- **Your local setup:** ~30 min the first time, then automatic.
-- **Result:** GPS + reminders work with screen locked and app closed on Android (and iOS when you add it).
-- **Pure PWA alternative?** Not possible — browsers don't allow background geolocation or scheduled notifications. Capacitor is the only real path.
+1. Open app → tap **Send test notification** → notification must appear in tray within 1 second.
+2. `adb logcat | grep -E "notifications|geofence|startup"` shows: channel created → permission granted → test scheduled → `OS delivered`.
+3. Walk into a geofence (or use Android Studio's location mock) → see `[geofence] TRIGGER ...` → `[notifications] native scheduled` → `[notifications] OS delivered` → tray notification.
+4. Lock screen, repeat geofence trigger — should still fire (the background watcher + scheduled notification both run natively).
 
-Ready to implement.
+## Out of scope
+
+- GPS / background-geolocation behavior (untouched — only logging added).
+- iOS-specific permission flow (already handled via Reminders button).
+- Custom notification icons / branded `ic_stat_*` drawable (user can add later in Android Studio; for now we fall back to the app icon so notifications are visible).
