@@ -14,9 +14,9 @@ export interface NativeLocation {
 type LocationCallback = (loc: NativeLocation) => void;
 
 let watcherId: string | null = null;
-
-let watcherId: string | null = null;
 let locationCount = 0;
+
+/**
  * Start a native background-geolocation watcher. Continues running when the
  * app is backgrounded or the screen is locked (Android foreground service /
  * iOS background location updates).
