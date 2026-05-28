@@ -1,16 +1,69 @@
 import { isNative } from "./native";
+import { Capacitor } from "@capacitor/core";
+
+const CHANNEL_ID = "bagaupair-default";
+
+let channelReady = false;
+let receiverAttached = false;
+
+/**
+ * Ensure the Android notification channel exists. Android 8+ silently drops
+ * notifications whose channelId isn't registered, so this must run before
+ * any schedule() call. Memoized — safe to call repeatedly.
+ */
+export async function ensureNotificationChannel(): Promise<void> {
+  if (!isNative()) return;
+  if (channelReady) return;
+  try {
+    const { LocalNotifications } = await import("@capacitor/local-notifications");
+
+    // Attach receive listener once so we can confirm OS delivery in logs.
+    if (!receiverAttached) {
+      receiverAttached = true;
+      try {
+        await LocalNotifications.addListener("localNotificationReceived", (n) => {
+          console.log("[notifications] OS delivered id=" + n.id + " title=" + n.title);
+        });
+        await LocalNotifications.addListener("localNotificationActionPerformed", (a) => {
+          console.log("[notifications] action performed id=" + a.notification.id);
+        });
+      } catch (e) {
+        console.warn("[notifications] addListener failed", e);
+      }
+    }
+
+    if (Capacitor.getPlatform() === "android") {
+      await LocalNotifications.createChannel({
+        id: CHANNEL_ID,
+        name: "Bag Reminders",
+        description: "Store proximity and bag reminder alerts",
+        importance: 5, // IMPORTANCE_HIGH
+        visibility: 1, // VISIBILITY_PUBLIC
+        vibration: true,
+        lights: true,
+      });
+      console.log("[notifications] android channel created id=" + CHANNEL_ID);
+    }
+    channelReady = true;
+  } catch (e) {
+    console.warn("[notifications] ensureNotificationChannel failed", e);
+  }
+}
 
 /**
  * Request permission to display local notifications.
- * On native (Capacitor) uses LocalNotifications plugin. On web uses Notification API.
  */
 export async function requestNotificationPermission(): Promise<boolean> {
   if (isNative()) {
     try {
       const { LocalNotifications } = await import("@capacitor/local-notifications");
       const res = await LocalNotifications.requestPermissions();
-      return res.display === "granted";
-    } catch {
+      const granted = res.display === "granted";
+      console.log("[notifications] native permission display=" + res.display);
+      if (granted) await ensureNotificationChannel();
+      return granted;
+    } catch (e) {
+      console.warn("[notifications] requestPermissions failed", e);
       return false;
     }
   }
@@ -21,17 +74,16 @@ export async function requestNotificationPermission(): Promise<boolean> {
   return result === "granted";
 }
 
-let nextId = 1;
-function genId() {
-  // Capacitor needs a 32-bit signed int id
-  nextId = (nextId + 1) % 2147483000;
-  return Date.now() % 2147480000 + nextId;
+// Simple monotonic 32-bit-safe id counter.
+let nextId = Math.floor(Math.random() * 100000) + 1;
+function genId(): number {
+  nextId = (nextId + 1) % 2_000_000_000;
+  return nextId;
 }
 
 /**
- * Display a notification immediately. On native this is delivered by the OS
- * (works whether the app is foreground/background/closed). On web it falls
- * back to the Notification API via the service worker.
+ * Display a notification immediately. On native, omits schedule.at so the OS
+ * fires it right away; uses the registered channel so it surfaces on Android.
  */
 export async function sendLocalNotification(
   title: string,
@@ -39,28 +91,35 @@ export async function sendLocalNotification(
   options?: { urgent?: boolean }
 ) {
   const isUrgent = options?.urgent ?? false;
-  console.log("[notifications] sendLocalNotification title=" + title + " urgent=" + isUrgent);
+  console.log("[notifications] sendLocalNotification title=" + title + " urgent=" + isUrgent + " native=" + isNative());
 
   if (isNative()) {
     try {
+      await ensureNotificationChannel();
       const { LocalNotifications } = await import("@capacitor/local-notifications");
       const id = genId();
+      console.log("[notifications] native scheduling id=" + id);
       await LocalNotifications.schedule({
         notifications: [
           {
             id,
             title,
             body,
-            schedule: { at: new Date(Date.now() + 100) },
-            smallIcon: "ic_stat_icon_config_sample",
+            channelId: CHANNEL_ID,
+            // No schedule.at → fires immediately.
             extra: { urgent: isUrgent },
           },
         ],
       });
-      console.log("[notifications] native scheduled id=" + id);
+      console.log("[notifications] native schedule() returned ok id=" + id);
       return;
-    } catch (e) {
-      console.warn("[notifications] native schedule failed", e);
+    } catch (e: any) {
+      console.error(
+        "[notifications] native schedule FAILED: " +
+          (e?.message || e) +
+          " code=" +
+          (e?.code || "n/a")
+      );
       // fall through to web fallback
     }
   }
@@ -109,9 +168,7 @@ export async function sendLocalNotification(
 }
 
 /**
- * Schedule a notification to fire `delayMinutes` from now. On native this is
- * handled by the OS — it fires even if the app is closed. On web it falls back
- * to setTimeout (which dies when the tab is closed).
+ * Schedule a notification to fire `delayMinutes` from now.
  */
 export async function scheduleBagReminder(delayMinutes: number, message: string) {
   const ms = delayMinutes * 60 * 1000;
@@ -119,20 +176,24 @@ export async function scheduleBagReminder(delayMinutes: number, message: string)
 
   if (isNative()) {
     try {
+      await ensureNotificationChannel();
       const { LocalNotifications } = await import("@capacitor/local-notifications");
+      const id = genId();
       await LocalNotifications.schedule({
         notifications: [
           {
-            id: genId(),
+            id,
             title: "🛍️ Bag Au Pair Reminder",
             body: message,
+            channelId: CHANNEL_ID,
             schedule: { at },
           },
         ],
       });
+      console.log("[notifications] scheduled future id=" + id + " at=" + at.toISOString());
       return;
-    } catch {
-      // fall through
+    } catch (e: any) {
+      console.error("[notifications] scheduleBagReminder failed: " + (e?.message || e));
     }
   }
 
@@ -142,15 +203,13 @@ export async function scheduleBagReminder(delayMinutes: number, message: string)
 }
 
 /**
- * Schedule a recurring wash reminder every `everyDays` days. On native the OS
- * delivers it whether the app is open or not. On web it uses setInterval
- * (limited — only fires while the tab is alive).
+ * Schedule a recurring wash reminder every `everyDays` days.
  */
 export async function scheduleWashReminder(everyDays: number = 14) {
   if (isNative()) {
     try {
+      await ensureNotificationChannel();
       const { LocalNotifications } = await import("@capacitor/local-notifications");
-      // Cancel any previous wash reminder so we don't stack duplicates
       const WASH_ID = 777001;
       try {
         await LocalNotifications.cancel({ notifications: [{ id: WASH_ID }] });
@@ -162,13 +221,14 @@ export async function scheduleWashReminder(everyDays: number = 14) {
             id: WASH_ID,
             title: "🧺 Time to Wash Your Bags",
             body: `It's been ${everyDays} days — time to wash your canvas grocery bags!`,
+            channelId: CHANNEL_ID,
             schedule: { at, every: "day", count: 365, repeats: false },
           },
         ],
       });
       return;
-    } catch {
-      // fall through
+    } catch (e: any) {
+      console.error("[notifications] scheduleWashReminder failed: " + (e?.message || e));
     }
   }
 
