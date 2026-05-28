@@ -122,8 +122,10 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
         const delayMin = parseInt(settings.bagOut.timing, 10) || 5;
         const delayMs = delayMin * 60 * 1000;
 
+        console.log("[geofence] TRIGGER home-arrival delayMin=" + delayMin);
         bagOutTimer = setTimeout(() => {
-          sendLocalNotification("🚗 Put your bags back!", `You've been home for ${delayMin} minutes — time to put your reusable bags back in the car!`);
+          sendLocalNotification("🚗 Put your bags back!", `You've been home for ${delayMin} minutes — time to put your reusable bags back in the car!`)
+            .catch((err) => console.error("[geofence] bagOut notify failed", err));
           bagOutTimer = null;
         }, delayMs);
       }
