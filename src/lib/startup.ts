@@ -11,10 +11,8 @@
  */
 import { loadStoreData } from "./store-persistence";
 import { startGeofenceWatching } from "./geofence";
-import { requestNotificationPermission, ensureNotificationChannel, reschedulePendingNotifications } from "./notifications";
+import { initNotificationService } from "./notification-service";
 import { isNative } from "./native";
-
-
 
 let started = false;
 
@@ -27,23 +25,13 @@ export async function initAppServices() {
 
   console.log("[startup] initAppServices begin (native=" + isNative() + ")");
 
-  // Create the Android notification channel BEFORE requesting permission so
-  // that even if permission is granted later (via the Reminders button) the
-  // channel already exists and notifications can surface immediately.
-  ensureNotificationChannel()
-    .then(() => console.log("[startup] notification channel ready"))
-    .catch((e) => console.warn("[startup] channel setup error", e));
+  // Single entry point: creates Android channel, requests permission
+  // (non-blocking), runs reconciliation engine, attaches lifecycle
+  // listeners for resume-time re-reconciliation.
+  initNotificationService()
+    .then(() => console.log("[startup] notification service ready"))
+    .catch((e) => console.warn("[startup] notif service init error", e));
 
-  // Re-arm any persisted scheduled notifications across restarts.
-  reschedulePendingNotifications().catch((e) =>
-    console.warn("[startup] reschedule error", e)
-  );
-
-
-  // Best-effort permission request — must NOT block geofence startup.
-  requestNotificationPermission()
-    .then((granted) => console.log("[startup] notification permission granted=" + granted))
-    .catch((e) => console.warn("[startup] notification permission error", e));
 
   // foreground service which keeps GPS alive when the app is closed.
   try {
