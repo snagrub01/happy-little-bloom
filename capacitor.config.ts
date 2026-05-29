@@ -23,6 +23,7 @@ const config: CapacitorConfig = {
       stopOnTerminate: false,
       startOnBoot: true,
     },
+    Radar: {},
   },
 };
 
