@@ -28,6 +28,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <PWAUpdatePrompt />
+        <BatteryOptimizationPrompt />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
