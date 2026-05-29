@@ -1,11 +1,15 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { initAppServices } from "./lib/startup";
+import { requestNotificationPermission } from "./lib/notifications";
 
-// Kick off native services (background geolocation + notifications) BEFORE
-// React mounts. This guarantees the watcher is registered at app process
-// start, not when a particular screen happens to load.
-initAppServices();
+// Background geolocation is handled entirely by the native Android layer.
+// Do NOT start any JS-side geofence watcher, visibilitychange, or focus
+// listeners here — those caused the WebView to drive geofencing and broke
+// background reliability.
+
+// Foreground-only: ask for notification permission so manual/native-fired
+// notifications can display. Fire-and-forget; never blocks React mount.
+requestNotificationPermission().catch(() => {});
 
 createRoot(document.getElementById("root")!).render(<App />);
