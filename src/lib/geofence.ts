@@ -6,7 +6,7 @@ import { loadWorkLocation } from "./work-location";
 import { loadStoreGeofences } from "./store-persistence";
 import { gentleVibrate } from "./vibration";
 import { isNative } from "./native";
-import { startNativeWatcher, stopNativeWatcher } from "./native-geofence";
+import { startNativeWatcher, stopNativeWatcher, updateNativeWatcherCallback, isNativeWatcherRunning } from "./native-geofence";
 
 const STATE_KEY = "bagbuddy-geofence-state";
 
