@@ -14,7 +14,9 @@ const config: CapacitorConfig = {
   // },
   plugins: {
     LocalNotifications: {
-      smallIcon: 'ic_stat_icon_config_sample',
+      // Use the app icon as the small notification icon. Referencing a
+      // non-existent drawable (e.g. 'ic_stat_icon_config_sample') causes
+      // Android 12+ to silently drop the notification.
       iconColor: '#4a6741',
     },
   },
