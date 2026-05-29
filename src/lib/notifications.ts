@@ -1,7 +1,21 @@
 import { isNative } from "./native";
 import { Capacitor } from "@capacitor/core";
 
-const CHANNEL_ID = "bagaupair-default";
+/**
+ * Notification service layer.
+ *
+ * All notification triggering in the app MUST go through the functions
+ * exported from this module. The service is UI-independent: it is
+ * initialized once at app startup from `src/lib/startup.ts` and never
+ * relies on a component being mounted or visible.
+ *
+ * Channel ID is intentionally a stable constant so that rebuilds / app
+ * upgrades reuse the same Android channel (Android does not allow
+ * downgrading an existing channel's importance, so we only ever create
+ * it with IMPORTANCE_HIGH and never mutate it afterwards).
+ */
+const CHANNEL_ID = "default_notifications";
+
 
 let channelReady = false;
 let receiverAttached = false;
