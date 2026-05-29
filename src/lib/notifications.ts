@@ -16,7 +16,7 @@
  *   - schedule recovery / reconciliation on app restart
  *   - assume it can run from a background JS callback
  */
-import { LocalNotifications, Importance, Visibility } from "@capacitor/local-notifications";
+import { LocalNotifications } from "@capacitor/local-notifications";
 import { isNative } from "./native";
 
 const CHANNEL_ID = "default_notifications";
@@ -30,8 +30,8 @@ export async function ensureNotificationChannel(): Promise<void> {
       id: CHANNEL_ID,
       name: "App Notifications",
       description: "Bag Au Pair reminders and alerts",
-      importance: Importance.High,
-      visibility: Visibility.Public,
+      importance: 5,
+      visibility: 1,
       vibration: true,
       lights: true,
     });
