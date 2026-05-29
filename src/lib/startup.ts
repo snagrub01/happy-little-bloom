@@ -11,8 +11,10 @@
  */
 import { loadStoreData } from "./store-persistence";
 import { startGeofenceWatching } from "./geofence";
-import { requestNotificationPermission, ensureNotificationChannel } from "./notifications";
+import { requestNotificationPermission, ensureNotificationChannel, reschedulePendingNotifications } from "./notifications";
 import { isNative } from "./native";
+
+
 
 let started = false;
 
@@ -31,6 +33,12 @@ export async function initAppServices() {
   ensureNotificationChannel()
     .then(() => console.log("[startup] notification channel ready"))
     .catch((e) => console.warn("[startup] channel setup error", e));
+
+  // Re-arm any persisted scheduled notifications across restarts.
+  reschedulePendingNotifications().catch((e) =>
+    console.warn("[startup] reschedule error", e)
+  );
+
 
   // Best-effort permission request — must NOT block geofence startup.
   requestNotificationPermission()

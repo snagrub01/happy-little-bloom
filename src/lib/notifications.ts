@@ -1,7 +1,21 @@
 import { isNative } from "./native";
 import { Capacitor } from "@capacitor/core";
 
-const CHANNEL_ID = "bagaupair-default";
+/**
+ * Notification service layer.
+ *
+ * All notification triggering in the app MUST go through the functions
+ * exported from this module. The service is UI-independent: it is
+ * initialized once at app startup from `src/lib/startup.ts` and never
+ * relies on a component being mounted or visible.
+ *
+ * Channel ID is intentionally a stable constant so that rebuilds / app
+ * upgrades reuse the same Android channel (Android does not allow
+ * downgrading an existing channel's importance, so we only ever create
+ * it with IMPORTANCE_HIGH and never mutate it afterwards).
+ */
+const CHANNEL_ID = "default_notifications";
+
 
 let channelReady = false;
 let receiverAttached = false;
@@ -35,20 +49,22 @@ export async function ensureNotificationChannel(): Promise<void> {
     if (Capacitor.getPlatform() === "android") {
       await LocalNotifications.createChannel({
         id: CHANNEL_ID,
-        name: "Bag Reminders",
-        description: "Store proximity and bag reminder alerts",
-        importance: 5, // IMPORTANCE_HIGH
-        visibility: 1, // VISIBILITY_PUBLIC
+        name: "App Notifications",
+        description: "High-priority alerts (store proximity, bag and wash reminders)",
+        importance: 5, // IMPORTANCE_HIGH — heads-up notifications
+        visibility: 1, // VISIBILITY_PUBLIC — show on lock screen
+        sound: undefined, // use channel default system sound
         vibration: true,
         lights: true,
       });
-      console.log("[notifications] android channel created id=" + CHANNEL_ID);
+      console.log("[notifications] android channel ensured id=" + CHANNEL_ID);
     }
     channelReady = true;
   } catch (e) {
     console.warn("[notifications] ensureNotificationChannel failed", e);
   }
 }
+
 
 /**
  * Request permission to display local notifications.
@@ -240,3 +256,43 @@ export async function scheduleWashReminder(everyDays: number = 14) {
     );
   }, ms);
 }
+
+/* ------------------------------------------------------------------ */
+/* Public service-layer API                                           */
+/* ------------------------------------------------------------------ */
+/* These are the ONLY entry points UI / geofence code should use to   */
+/* trigger notifications. They are thin, stable aliases over the      */
+/* implementation above so callers never reach into Capacitor         */
+/* directly and never depend on component lifecycle.                  */
+
+/** Fire a notification right now (status bar + heads-up). */
+export const triggerImmediateNotification = (
+  title: string,
+  body: string,
+  options?: { urgent?: boolean }
+) => sendLocalNotification(title, body, options);
+
+/** Schedule a notification `delayMinutes` from now. */
+export const scheduleNotification = (delayMinutes: number, message: string) =>
+  scheduleBagReminder(delayMinutes, message);
+
+/**
+ * Re-arm any pending notifications after app restart. The native
+ * scheduler persists schedules across restarts on its own, but we
+ * call this on startup so the channel is guaranteed to exist before
+ * any future-dated alarm fires, and to give us a clear log marker.
+ */
+export async function reschedulePendingNotifications(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await ensureNotificationChannel();
+    const { LocalNotifications } = await import("@capacitor/local-notifications");
+    const pending = await LocalNotifications.getPending();
+    console.log(
+      "[notifications] reschedulePending: " + pending.notifications.length + " pending"
+    );
+  } catch (e: any) {
+    console.warn("[notifications] reschedulePending failed: " + (e?.message || e));
+  }
+}
+
