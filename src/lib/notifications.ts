@@ -256,3 +256,43 @@ export async function scheduleWashReminder(everyDays: number = 14) {
     );
   }, ms);
 }
+
+/* ------------------------------------------------------------------ */
+/* Public service-layer API                                           */
+/* ------------------------------------------------------------------ */
+/* These are the ONLY entry points UI / geofence code should use to   */
+/* trigger notifications. They are thin, stable aliases over the      */
+/* implementation above so callers never reach into Capacitor         */
+/* directly and never depend on component lifecycle.                  */
+
+/** Fire a notification right now (status bar + heads-up). */
+export const triggerImmediateNotification = (
+  title: string,
+  body: string,
+  options?: { urgent?: boolean }
+) => sendLocalNotification(title, body, options);
+
+/** Schedule a notification `delayMinutes` from now. */
+export const scheduleNotification = (delayMinutes: number, message: string) =>
+  scheduleBagReminder(delayMinutes, message);
+
+/**
+ * Re-arm any pending notifications after app restart. The native
+ * scheduler persists schedules across restarts on its own, but we
+ * call this on startup so the channel is guaranteed to exist before
+ * any future-dated alarm fires, and to give us a clear log marker.
+ */
+export async function reschedulePendingNotifications(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await ensureNotificationChannel();
+    const { LocalNotifications } = await import("@capacitor/local-notifications");
+    const pending = await LocalNotifications.getPending();
+    console.log(
+      "[notifications] reschedulePending: " + pending.notifications.length + " pending"
+    );
+  } catch (e: any) {
+    console.warn("[notifications] reschedulePending failed: " + (e?.message || e));
+  }
+}
+
