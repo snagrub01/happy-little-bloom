@@ -39,8 +39,8 @@ export async function initialize(): Promise<void> {
   }
 
   const publishableKey = import.meta.env.VITE_RADAR_KEY as string | undefined;
-  if (!publishableKey) {
-    console.error("[radar] VITE_RADAR_KEY missing — cannot initialize");
+  if (!publishableKey || publishableKey.trim() === "") {
+    console.warn("[radar] VITE_RADAR_KEY not set — skipping Radar initialization");
     return;
   }
 
