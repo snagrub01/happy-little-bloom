@@ -6,7 +6,8 @@ import { loadWorkLocation } from "./work-location";
 import { loadStoreGeofences } from "./store-persistence";
 import { gentleVibrate } from "./vibration";
 import { isNative } from "./native";
-import { startNativeWatcher, stopNativeWatcher, updateNativeWatcherCallback, isNativeWatcherRunning } from "./native-geofence";
+// Native background geolocation + transition detection lives entirely in
+// the Android layer. JS no longer starts or stops a native watcher here.
 
 const STATE_KEY = "bagbuddy-geofence-state";
 
@@ -219,31 +220,15 @@ export async function startGeofenceWatching(enabledStores: StoreResult[]) {
 
   requestNotificationPermission();
 
-  // Prefer native background geolocation when running inside Capacitor.
+  // On native: do nothing here. The Android layer owns transition
+  // detection and notification display via registered geofences.
   if (isNative()) {
-    const cb = ({ latitude, longitude }: { latitude: number; longitude: number }) => {
-      handleLocation(latitude, longitude, enabledStores);
-    };
-    // If the native foreground service is already alive, just hot-swap the
-    // callback. DO NOT tear it down — re-registering kills the foreground
-    // service and the WebView gets background-throttled again.
-    if (isNativeWatcherRunning()) {
-      updateNativeWatcherCallback(cb);
-      console.log("[geofence] reused running NATIVE watcher (callback updated)");
-      return;
-    }
-    // Only stop the web watcher (if any) before starting native — never
-    // touch the native watcher here.
+    console.log("[geofence] native platform — JS watcher disabled (handled by Android)");
     if (webWatchId !== null) {
       navigator.geolocation.clearWatch(webWatchId);
       webWatchId = null;
     }
-    const ok = await startNativeWatcher(cb);
-    if (ok) {
-      console.log("[geofence] using NATIVE background watcher");
-      return;
-    }
-    console.warn("[geofence] native watcher failed, falling back to web");
+    return;
   }
 
   await stopGeofenceWatching();
@@ -269,7 +254,6 @@ export async function stopGeofenceWatching() {
     navigator.geolocation.clearWatch(webWatchId);
     webWatchId = null;
   }
-  await stopNativeWatcher();
   notifiedStoreIds.clear();
   secondaryTimers.forEach((t) => clearTimeout(t));
   secondaryTimers.clear();
