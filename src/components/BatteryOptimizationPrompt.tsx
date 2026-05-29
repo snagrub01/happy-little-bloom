@@ -27,7 +27,7 @@ const BatteryOptimizationPrompt = () => {
 
   const handleOpenSettings = () => {
     NativeSettings.openAndroid({
-      option: AndroidSettings.RequestIgnoreBatteryOptimizations,
+      option: AndroidSettings.BatteryOptimization,
     });
     dismissPrompt();
   };
