@@ -49,20 +49,22 @@ export async function ensureNotificationChannel(): Promise<void> {
     if (Capacitor.getPlatform() === "android") {
       await LocalNotifications.createChannel({
         id: CHANNEL_ID,
-        name: "Bag Reminders",
-        description: "Store proximity and bag reminder alerts",
-        importance: 5, // IMPORTANCE_HIGH
-        visibility: 1, // VISIBILITY_PUBLIC
+        name: "App Notifications",
+        description: "High-priority alerts (store proximity, bag and wash reminders)",
+        importance: 5, // IMPORTANCE_HIGH — heads-up notifications
+        visibility: 1, // VISIBILITY_PUBLIC — show on lock screen
+        sound: undefined, // use channel default system sound
         vibration: true,
         lights: true,
       });
-      console.log("[notifications] android channel created id=" + CHANNEL_ID);
+      console.log("[notifications] android channel ensured id=" + CHANNEL_ID);
     }
     channelReady = true;
   } catch (e) {
     console.warn("[notifications] ensureNotificationChannel failed", e);
   }
 }
+
 
 /**
  * Request permission to display local notifications.
