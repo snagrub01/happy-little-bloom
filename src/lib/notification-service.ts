@@ -18,6 +18,11 @@
 
 import { Capacitor } from "@capacitor/core";
 import { isNative } from "./native";
+// Eager static import — critical for background-callback paths. A dynamic
+// import inside a background-geolocation callback queues a microtask that
+// only resolves when the WebView is awake; on Android that means the
+// notification doesn't fire until the user touches the UI.
+import { LocalNotifications } from "@capacitor/local-notifications";
 
 /* ------------------------------------------------------------------ */
 /* Types                                                              */
