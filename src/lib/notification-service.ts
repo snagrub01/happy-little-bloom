@@ -115,7 +115,7 @@ async function ensureChannel(): Promise<void> {
   if (!isNative()) return;
   if (channelReady) return;
   try {
-    const { LocalNotifications } = await import("@capacitor/local-notifications");
+
 
     if (!listenersAttached) {
       listenersAttached = true;
@@ -157,7 +157,7 @@ async function ensureChannel(): Promise<void> {
 export async function requestPermission(): Promise<boolean> {
   if (isNative()) {
     try {
-      const { LocalNotifications } = await import("@capacitor/local-notifications");
+  
       const res = await LocalNotifications.requestPermissions();
       const granted = res.display === "granted";
       console.log("[notif-svc] native permission display=" + res.display);
@@ -181,7 +181,7 @@ export async function requestPermission(): Promise<boolean> {
 async function osSchedule(n: StoredNotification): Promise<void> {
   if (isNative()) {
     await ensureChannel();
-    const { LocalNotifications } = await import("@capacitor/local-notifications");
+
     const payload: any = {
       id: n.id,
       title: n.title,
@@ -235,7 +235,7 @@ async function osSchedule(n: StoredNotification): Promise<void> {
 async function osCancel(ids: number[]): Promise<void> {
   if (!isNative() || ids.length === 0) return;
   try {
-    const { LocalNotifications } = await import("@capacitor/local-notifications");
+
     await LocalNotifications.cancel({ notifications: ids.map((id) => ({ id })) });
   } catch (e) {
     console.warn("[notif-svc] osCancel failed", e);
@@ -245,7 +245,7 @@ async function osCancel(ids: number[]): Promise<void> {
 async function osPendingIds(): Promise<Set<number>> {
   if (!isNative()) return new Set();
   try {
-    const { LocalNotifications } = await import("@capacitor/local-notifications");
+
     const pending = await LocalNotifications.getPending();
     return new Set(pending.notifications.map((p) => Number(p.id)));
   } catch (e) {
