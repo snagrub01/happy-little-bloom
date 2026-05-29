@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import BottomNav from "@/components/BottomNav";
+import BatteryOptimizationPrompt from "@/components/BatteryOptimizationPrompt";
 import PWAUpdatePrompt from "@/components/PWAUpdatePrompt";
 import Index from "./pages/Index.tsx";
 import Stores from "./pages/Stores.tsx";
@@ -27,6 +28,7 @@ const App = () => {
         <Toaster />
         <Sonner />
         <PWAUpdatePrompt />
+        <BatteryOptimizationPrompt />
         <BrowserRouter>
           <Routes>
             <Route path="/" element={<Index />} />
