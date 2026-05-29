@@ -43,6 +43,7 @@
         "@tanstack/react-query": "^5.83.0",
         "@types/leaflet": "^1.9.21",
         "capacitor-native-settings": "^8.1.0",
+        "capacitor-radar": "^4.0.0",
         "class-variance-authority": "^0.7.1",
         "clsx": "^2.1.1",
         "cmdk": "^1.1.1",
@@ -802,6 +803,8 @@
 
     "capacitor-native-settings": ["capacitor-native-settings@8.1.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/capacitor-native-settings/-/capacitor-native-settings-8.1.0.tgz", { "peerDependencies": { "@capacitor/core": ">=8.0.2" } }, "sha512-bcIsKO0EBChdiG2l7RAt70cKxz0Vygfx7quN6tSoNlwziCct8f5EgT8xmwNit+7F712ojl54xNaEddu87EpkjQ=="],
 
+    "capacitor-radar": ["capacitor-radar@4.0.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/capacitor-radar/-/capacitor-radar-4.0.0.tgz", { "dependencies": { "@capacitor/core": "^8.0.0", "radar-sdk-js": "^3.7.1" } }, "sha512-gx3DlIZ4ykvt9jQiot2lrblx7/4LUM9qDZhtUm3qN9loi/8ZmbZDvP/oftQcbHNzGjdeOGX/UNTwgEZUR3a13A=="],
+
     "chai": ["chai@5.3.3", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/chai/-/chai-5.3.3.tgz", { "dependencies": { "assertion-error": "^2.0.1", "check-error": "^2.1.1", "deep-eql": "^5.0.1", "loupe": "^3.1.0", "pathval": "^2.0.0" } }, "sha512-4zNhdJD/iOjSH0A05ea+Ke6MU5mmpQcbQsSOkgdaUMJ9zTlDTD/GYlwohmIE2u0gaxHYiVHEn1Fw9mZ/ktJWgw=="],
 
     "chalk": ["chalk@4.1.2", "", { "dependencies": { "ansi-styles": "^4.1.0", "supports-color": "^7.1.0" } }, "sha512-oKnbhFyRIXpUuez8iBMmyEa4nbj4IOQyuhc/wy9kY7/WVPcwIO9VA668Pu8RkO7+0G76SLROeyw9CpQ061i4mA=="],
@@ -1375,6 +1378,8 @@
     "querystringify": ["querystringify@2.2.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/querystringify/-/querystringify-2.2.0.tgz", {}, "sha512-FIqgj2EUvTa7R50u0rGsyTftzjYmv/a3hO345bZNrqabNqjtgiDMgmo4mkUjd+nzU5oF3dClKqFIPUKybUyqoQ=="],
 
     "queue-microtask": ["queue-microtask@1.2.3", "", {}, "sha512-NuaNSa6flKT5JaSYQzJok04JzTL1CA6aGhv5rfLW3PgqA+M2ChpZQnAC8h8i4ZFkBS8X5RqkDBHA7r4hej3K9A=="],
+
+    "radar-sdk-js": ["radar-sdk-js@3.7.1", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/radar-sdk-js/-/radar-sdk-js-3.7.1.tgz", {}, "sha512-yhuvEfyOeOEZpPf9XGOaC/TZlf3iib6iCcvZnwHR+fRV6r5f4/BIEO9xcEiU0WF/sl7pA22Vx4KXi8vsfBrstg=="],
 
     "randombytes": ["randombytes@2.1.0", "https://europe-west4-npm.pkg.dev/lovable-core-prod/sandbox-npm-cache/randombytes/-/randombytes-2.1.0.tgz", { "dependencies": { "safe-buffer": "^5.1.0" } }, "sha512-vYl3iOX+4CKUWuxGi9Ukhie6fsqXqS9FE2Zaic4tNFD2N2QQaXOMFbuKK4QmDHC0JO6B1Zp41J0LpT0oR68amQ=="],
 
