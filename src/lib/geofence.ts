@@ -6,7 +6,7 @@ import { loadWorkLocation } from "./work-location";
 import { loadStoreGeofences } from "./store-persistence";
 import { gentleVibrate } from "./vibration";
 import { isNative } from "./native";
-import { startNativeWatcher, stopNativeWatcher } from "./native-geofence";
+import { startNativeWatcher, stopNativeWatcher, updateNativeWatcherCallback, isNativeWatcherRunning } from "./native-geofence";
 
 const STATE_KEY = "bagbuddy-geofence-state";
 
@@ -217,20 +217,37 @@ export async function startGeofenceWatching(enabledStores: StoreResult[]) {
       hasBagOut
   );
 
-  await stopGeofenceWatching();
   requestNotificationPermission();
 
   // Prefer native background geolocation when running inside Capacitor.
   if (isNative()) {
-    const ok = await startNativeWatcher(({ latitude, longitude }) => {
+    const cb = ({ latitude, longitude }: { latitude: number; longitude: number }) => {
       handleLocation(latitude, longitude, enabledStores);
-    });
+    };
+    // If the native foreground service is already alive, just hot-swap the
+    // callback. DO NOT tear it down — re-registering kills the foreground
+    // service and the WebView gets background-throttled again.
+    if (isNativeWatcherRunning()) {
+      updateNativeWatcherCallback(cb);
+      console.log("[geofence] reused running NATIVE watcher (callback updated)");
+      return;
+    }
+    // Only stop the web watcher (if any) before starting native — never
+    // touch the native watcher here.
+    if (webWatchId !== null) {
+      navigator.geolocation.clearWatch(webWatchId);
+      webWatchId = null;
+    }
+    const ok = await startNativeWatcher(cb);
     if (ok) {
       console.log("[geofence] using NATIVE background watcher");
       return;
     }
     console.warn("[geofence] native watcher failed, falling back to web");
   }
+
+  await stopGeofenceWatching();
+
 
   if (!("geolocation" in navigator)) {
     console.warn("[geofence] no geolocation API available");
