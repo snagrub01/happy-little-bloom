@@ -34,6 +34,12 @@ export async function initAppServices() {
     .then(() => console.log("[startup] notification channel ready"))
     .catch((e) => console.warn("[startup] channel setup error", e));
 
+  // Re-arm any persisted scheduled notifications across restarts.
+  reschedulePendingNotifications().catch((e) =>
+    console.warn("[startup] reschedule error", e)
+  );
+
+
   // Best-effort permission request — must NOT block geofence startup.
   requestNotificationPermission()
     .then((granted) => console.log("[startup] notification permission granted=" + granted))
