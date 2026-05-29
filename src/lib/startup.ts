@@ -48,21 +48,19 @@ export async function initAppServices() {
     console.error("[startup] failed to start geofence watcher", e);
   }
 
-  // On native, also listen for app resume so that if the OS ever did kill
-  // the watcher we re-bind it. This is belt-and-suspenders — the native
-  // foreground service should keep it alive on its own.
+  // On native, listen for resume ONLY to log + reconcile (notifications
+  // service does its own resume hooks). DO NOT restart the native watcher
+  // here — re-registering the BackgroundGeolocation watcher tears down the
+  // Android foreground service and reverts to background-throttled mode,
+  // which is exactly the bug that caused notifications to only fire after
+  // the user tapped the UI.
   if (isNative()) {
     try {
       const { App } = await import("@capacitor/app");
       App.addListener("appStateChange", (state) => {
         console.log("[startup] appStateChange isActive=" + state.isActive);
-        if (state.isActive) {
-          const { stores, enabled } = loadStoreData();
-          const enabledStores = stores.filter((s) => enabled.has(s.id));
-          startGeofenceWatching(enabledStores).catch((err) =>
-            console.error("[startup] resume restart failed", err)
-          );
-        }
+        // Intentionally NO startGeofenceWatching() call here. The native
+        // foreground service is persistent and survives backgrounding.
       });
       App.addListener("resume", () => {
         console.log("[startup] App resume event");
