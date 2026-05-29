@@ -1,94 +1,86 @@
-// JS registers fences only. Native Android handles all transition events and notifications.
+// Radar handles all native geofencing and background location — no WebView dependency
 
+import Radar from "capacitor-radar";
 import { isNative } from "./native";
-import { registerPlugin } from "@capacitor/core";
-import { NativeSettings, AndroidSettings } from "capacitor-native-settings";
-import { toast } from "sonner";
+import { sendLocalNotification } from "./notifications";
 
-export interface NativeGeofenceStore {
-  id: string;
-  lat: number;
-  lng: number;
-  name: string;
-  radius: number; // meters
+const DEVICE_ID_KEY = "bagbuddy-radar-device-id";
+
+function getOrCreateDeviceId(): string {
+  let id = localStorage.getItem(DEVICE_ID_KEY);
+  if (!id) {
+    id =
+      "dev_" +
+      Date.now().toString(36) +
+      "_" +
+      Math.random().toString(36).slice(2, 10);
+    try {
+      localStorage.setItem(DEVICE_ID_KEY, id);
+    } catch {}
+  }
+  return id;
 }
 
-interface PermissionStatus {
-  fine: boolean;       // ACCESS_FINE_LOCATION
-  background: boolean; // ACCESS_BACKGROUND_LOCATION
-}
-
-interface NativeGeofencePlugin {
-  registerGeofences(options: { fences: NativeGeofenceStore[] }): Promise<void>;
-  checkPermissions(): Promise<PermissionStatus>;
-}
-
-const NativeGeofence = registerPlugin<NativeGeofencePlugin>("NativeGeofence");
-
-function openAppSettings() {
-  NativeSettings.openAndroid({ option: AndroidSettings.ApplicationDetails }).catch((e) =>
-    console.error("[native-geofence] failed to open app settings", e)
-  );
-}
-
-function showPermissionAlert(missing: PermissionStatus) {
-  const needs: string[] = [];
-  if (!missing.fine) needs.push("precise location");
-  if (!missing.background) needs.push("background location (Allow all the time)");
-
-  toast.error("Location permission required", {
-    description:
-      `Bag Au Pair needs ${needs.join(" and ")} to send store reminders. ` +
-      `Open app settings and choose "Allow all the time" under Permissions → Location.`,
-    duration: 15000,
-    action: {
-      label: "Open Settings",
-      onClick: openAppSettings,
-    },
-  });
-}
+let initialized = false;
 
 /**
- * Send the full set of store geofences to the native Android layer.
- * Native code owns transition detection, background execution, and
- * notification display. This function returns immediately after the
- * plugin call resolves — it does NOT subscribe to any callbacks or
- * lifecycle events.
- *
- * Before registering, verifies BOTH ACCESS_FINE_LOCATION and
- * ACCESS_BACKGROUND_LOCATION are granted. If either is missing,
- * registration is aborted and the user is shown an alert with a
- * button to open app settings.
+ * Initialize Radar SDK, identify the device, start responsive
+ * background tracking, and subscribe to geofence entry events.
+ * Entry events fire a local notification via notifications.ts.
  */
-export async function registerNativeGeofences(stores: NativeGeofenceStore[]): Promise<void> {
+export async function initialize(): Promise<void> {
   if (!isNative()) {
-    console.log("[native-geofence] not native — skipping registration");
+    console.log("[radar] not native — skipping initialize");
+    return;
+  }
+  if (initialized) {
+    console.log("[radar] already initialized");
     return;
   }
 
-  let perms: PermissionStatus;
-  try {
-    perms = await NativeGeofence.checkPermissions();
-  } catch (e) {
-    console.error("[native-geofence] permission check failed", e);
-    perms = { fine: false, background: false };
-  }
-
-  if (!perms.fine || !perms.background) {
-    console.warn(
-      "[geofence] missing permissions, aborting registration " +
-        `(fine=${perms.fine}, background=${perms.background})`
-    );
-    showPermissionAlert(perms);
+  const publishableKey = import.meta.env.VITE_RADAR_KEY as string | undefined;
+  if (!publishableKey) {
+    console.error("[radar] VITE_RADAR_KEY missing — cannot initialize");
     return;
   }
 
-  console.log(`[geofence] permissions OK, registering ${stores.length} fences`);
-
   try {
-    await NativeGeofence.registerGeofences({ fences: stores });
-    console.log("[native-geofence] registration complete");
+    await (Radar as any).initialize({ publishableKey });
+    console.log("[radar] initialized");
+
+    const deviceId = getOrCreateDeviceId();
+    await (Radar as any).setUserId({ userId: deviceId });
+    console.log("[radar] userId set:", deviceId);
+
+    await (Radar as any).startTracking({ preset: "responsive" });
+    console.log("[radar] startTracking responsive");
+
+    (Radar as any).addListener("events", (result: any) => {
+      const events = result?.events || [];
+      for (const ev of events) {
+        if (typeof ev?.type === "string" && ev.type.includes("entry")) {
+          const placeName = ev?.place?.name || "Nearby Store";
+          sendLocalNotification(
+            "🛍️ Don't forget your bags!",
+            `You're near ${placeName} — grab your reusable bags!`
+          ).catch((e) => console.error("[radar] notify failed", e));
+        }
+      }
+    });
+
+    initialized = true;
   } catch (e) {
-    console.error("[native-geofence] registration failed", e);
+    console.error("[radar] initialize failed", e);
+  }
+}
+
+/** Stop Radar background tracking. */
+export async function stop(): Promise<void> {
+  if (!isNative()) return;
+  try {
+    await (Radar as any).stopTracking();
+    console.log("[radar] stopped");
+  } catch (e) {
+    console.error("[radar] stop failed", e);
   }
 }
