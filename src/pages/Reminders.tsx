@@ -9,7 +9,14 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { saveReminderSettings, loadReminderSettings } from "@/lib/reminder-persistence";
-import { requestNotificationPermission, scheduleBagReminder, sendLocalNotification } from "@/lib/notifications";
+import {
+  requestNotificationPermission,
+  sendLocalNotification,
+  scheduleWashReminderAt,
+  cancelWashReminder,
+  scheduleBagReturnReminder,
+  cancelBagReturnReminder,
+} from "@/lib/notifications";
 import { startGeofenceWatching } from "@/lib/geofence";
 import { loadStoreData } from "@/lib/store-persistence";
 import { toast } from "sonner";
@@ -38,27 +45,25 @@ const Reminders = () => {
     startGeofenceWatching(enabledStores);
   }, [bagIn, leavingHome, leavingWork, bagOut]);
 
-  // Schedule bag-return reminder when enabled
+  // Bag-return reminder: OS-scheduled, persisted, single notification ID 1002.
   useEffect(() => {
     if (bagOut.enabled) {
-      // This is activated in real usage when the user arrives home
-      // For now we set up the timer from the settings
+      const minutes = parseInt(bagOut.timing, 10) || 5;
+      scheduleBagReturnReminder(minutes, { daily: false }).catch(() => {});
+    } else {
+      cancelBagReturnReminder().catch(() => {});
     }
-  }, [bagOut]);
+  }, [bagOut.enabled, bagOut.timing]);
 
-  // Wash reminder scheduling
+  // Wash reminder: OS-scheduled, persisted, single notification ID 1001.
   useEffect(() => {
-    if (!washReminder.enabled) return;
-    const days = parseInt(washReminder.timing, 10);
-    const ms = days * 24 * 60 * 60 * 1000;
-    const timer = setInterval(() => {
-      sendLocalNotification(
-        "🧺 Time to Wash Your Bags",
-        `It's been ${days} days — time to wash your canvas grocery bags!`
-      );
-    }, ms);
-    return () => clearInterval(timer);
-  }, [washReminder]);
+    if (washReminder.enabled) {
+      const days = parseInt(washReminder.timing, 10) || 14;
+      scheduleWashReminderAt(days).catch(() => {});
+    } else {
+      cancelWashReminder().catch(() => {});
+    }
+  }, [washReminder.enabled, washReminder.timing]);
 
   const handleToggle = (setter: Function, current: any, checked: boolean) => {
     if (checked) {
@@ -80,6 +85,14 @@ const Reminders = () => {
         </p>
       </motion.div>
 
+
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }}>
+        <Card className="p-3 mb-4 border border-border bg-accent/40">
+          <p className="text-xs text-accent-foreground leading-relaxed">
+            💡 <strong>Tip:</strong> Open the app before leaving home for the best reminder experience.
+          </p>
+        </Card>
+      </motion.div>
 
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
         <Card className="p-4 mb-4 border border-border flex items-center justify-between gap-3">
@@ -355,9 +368,9 @@ const Reminders = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className="p-4 border border-border bg-accent/50">
             <p className="text-xs text-accent-foreground leading-relaxed">
-              💡 <strong>How it works:</strong> Enable store alerts on the Stores tab. When you're near
-              a selected store, you'll get a push notification to grab your bags. The wash reminder
-              runs on a recurring schedule. All settings are saved automatically.
+              💡 <strong>How it works:</strong> Open the app before you head out and we'll remind you when you're
+              near your stores. Wash and bag-return reminders run on your phone's scheduler, so they'll fire on
+              time even if the app isn't open. All settings are saved automatically.
             </p>
           </Card>
         </motion.div>
