@@ -1,8 +1,7 @@
 import { useState, useEffect } from "react";
-import { Bell, ShoppingBag, Car, Droplets, Clock, Baby, Tag, LogOut } from "lucide-react";
+import { Bell, ShoppingBag, Car, Droplets, Clock, Baby, Tag } from "lucide-react";
 import { motion } from "framer-motion";
 import HomeLocationCard from "@/components/HomeLocationCard";
-import WorkLocationCard from "@/components/WorkLocationCard";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -29,21 +28,18 @@ const Reminders = () => {
   const [bagOut, setBagOut] = useState(saved.bagOut);
   const [washReminder, setWashReminder] = useState(saved.washReminder);
   const [couponReminder, setCouponReminder] = useState(saved.couponReminder);
-  const [leavingHome, setLeavingHome] = useState(saved.leavingHome);
-  const [leavingWork, setLeavingWork] = useState(saved.leavingWork);
 
   // Persist settings on change
   useEffect(() => {
-    const settings = { bagIn, secondaryReminder, bagOut, washReminder, couponReminder, leavingHome, leavingWork };
-    saveReminderSettings(settings);
-  }, [bagIn, secondaryReminder, bagOut, washReminder, couponReminder, leavingHome, leavingWork]);
+    saveReminderSettings({ bagIn, secondaryReminder, bagOut, washReminder, couponReminder });
+  }, [bagIn, secondaryReminder, bagOut, washReminder, couponReminder]);
 
   // Re-start geofence when any geofence-related setting changes
   useEffect(() => {
     const { stores, enabled } = loadStoreData();
     const enabledStores = stores.filter((s) => enabled.has(s.id));
     startGeofenceWatching(enabledStores);
-  }, [bagIn, leavingHome, leavingWork, bagOut]);
+  }, [bagIn, bagOut]);
 
   // Bag-return reminder: OS-scheduled, persisted, single notification ID 1002.
   useEffect(() => {
@@ -75,6 +71,7 @@ const Reminders = () => {
     }
     setter({ ...current, enabled: checked });
   };
+
 
   return (
     <div className="min-h-screen pb-24 px-5 pt-12 max-w-lg mx-auto">
