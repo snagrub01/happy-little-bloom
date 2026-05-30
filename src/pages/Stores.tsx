@@ -20,7 +20,7 @@ import { saveStoreData, loadStoreData, saveStoreGeofences, loadStoreGeofences } 
 import { startGeofenceWatching } from "@/lib/geofence";
 import { requestNotificationPermission } from "@/lib/notifications";
 
-const DEFAULT_GEOFENCE_FEET = 250;
+const DEFAULT_GEOFENCE_FEET = 1800;
 
 const Stores = () => {
   const saved = loadStoreData();
