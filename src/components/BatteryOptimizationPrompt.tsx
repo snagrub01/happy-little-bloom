@@ -41,15 +41,16 @@ const BatteryOptimizationPrompt = () => {
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()}>
         <DialogHeader>
-          <DialogTitle>Enable Background Notifications</DialogTitle>
+          <DialogTitle>Allow Reliable Notifications</DialogTitle>
           <DialogDescription>
-            To receive geofence and reminder notifications even when your screen
-            is locked, please allow Bag Au Pair to ignore battery optimization.
+            So scheduled reminders (wash, bag return) fire reliably while your
+            screen is locked, please allow Bag Au Pair to ignore battery
+            optimization.
           </DialogDescription>
         </DialogHeader>
         <div className="text-sm text-muted-foreground">
-          Without this permission, Android may pause the app when the screen is
-          off, causing missed arrival reminders and bag alerts.
+          Without this permission, Android may delay scheduled reminders when
+          the screen is off.
         </div>
         <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2">
           <Button variant="outline" onClick={dismissPrompt}>
