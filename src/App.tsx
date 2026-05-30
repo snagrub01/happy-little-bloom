@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -13,14 +14,26 @@ import Reminders from "./pages/Reminders.tsx";
 import Donate from "./pages/Donate.tsx";
 import Install from "./pages/Install.tsx";
 import NotFound from "./pages/NotFound.tsx";
+import { runOnOpenProximityCheck } from "@/lib/on-open-proximity";
+import { ensureWashReminderScheduled } from "@/lib/notifications";
+import { loadReminderSettings } from "@/lib/reminder-persistence";
 
 const queryClient = new QueryClient();
 
-// NOTE: Geofence + notification initialization is intentionally NOT in this
-// component. It runs from `src/main.tsx` → `initAppServices()` so it fires
-// at app process start, independent of which screen mounts, and the native
-// background watcher is never torn down on component unmount.
 const App = () => {
+  // Run once per app open: check proximity to enabled stores and reschedule
+  // the wash reminder if missing. Background geofence events are handled by
+  // Radar's native SDK separately (see main.tsx).
+  useEffect(() => {
+    runOnOpenProximityCheck().catch((e) =>
+      console.warn("[app] on-open proximity check failed", e)
+    );
+    const settings = loadReminderSettings();
+    if (settings.washReminder.enabled) {
+      const days = parseInt(settings.washReminder.timing, 10) || 14;
+      ensureWashReminderScheduled(days).catch(() => {});
+    }
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
