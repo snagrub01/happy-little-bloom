@@ -86,6 +86,14 @@ const Reminders = () => {
       </motion.div>
 
 
+      <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.03 }}>
+        <Card className="p-3 mb-4 border border-border bg-accent/40">
+          <p className="text-xs text-accent-foreground leading-relaxed">
+            💡 <strong>Tip:</strong> Open the app before leaving home for the best reminder experience.
+          </p>
+        </Card>
+      </motion.div>
+
       <motion.div initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
         <Card className="p-4 mb-4 border border-border flex items-center justify-between gap-3">
           <div className="min-w-0">
