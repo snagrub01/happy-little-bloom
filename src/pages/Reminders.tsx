@@ -369,8 +369,8 @@ const Reminders = () => {
           <Card className="p-4 border border-border bg-accent/50">
             <p className="text-xs text-accent-foreground leading-relaxed">
               💡 <strong>How it works:</strong> Open the app before you head out and we'll remind you when you're
-              near your stores. Wash and bag-return reminders run on your phone's scheduler, so they'll fire on
-              time even if the app isn't open. All settings are saved automatically.
+              near your stores. Wash and bag-return reminders are scheduled on your phone and will fire at your
+              set time. All settings are saved as you change them.
             </p>
           </Card>
         </motion.div>
