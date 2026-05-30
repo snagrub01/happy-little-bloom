@@ -368,9 +368,9 @@ const Reminders = () => {
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.3 }}>
           <Card className="p-4 border border-border bg-accent/50">
             <p className="text-xs text-accent-foreground leading-relaxed">
-              💡 <strong>How it works:</strong> Enable store alerts on the Stores tab. When you're near
-              a selected store, you'll get a push notification to grab your bags. The wash reminder
-              runs on a recurring schedule. All settings are saved automatically.
+              💡 <strong>How it works:</strong> Open the app before you head out and we'll remind you when you're
+              near your stores. Wash and bag-return reminders run on your phone's scheduler, so they'll fire on
+              time even if the app isn't open. All settings are saved automatically.
             </p>
           </Card>
         </motion.div>
