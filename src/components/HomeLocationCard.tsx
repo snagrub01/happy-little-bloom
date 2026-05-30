@@ -119,10 +119,10 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Leaving geofence radius:</span>
-                <span className="text-xs font-semibold text-foreground">{home.radiusFeet || 500} ft</span>
+                <span className="text-xs font-semibold text-foreground">{home.radiusFeet || 1800} ft</span>
               </div>
               <Slider
-                value={[home.radiusFeet || 500]}
+                value={[home.radiusFeet || 1800]}
                 onValueChange={([v]) => {
                   const updated = { ...home, radiusFeet: v };
                   setHome(updated);
@@ -137,7 +137,7 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
                 <span>1,800 ft</span>
               </div>
             </div>
-            <GeofenceMap lat={home.lat} lon={home.lon} radiusFeet={home.radiusFeet || 500} />
+            <GeofenceMap lat={home.lat} lon={home.lon} radiusFeet={home.radiusFeet || 1800} />
           </div>
         ) : (
           <div className="mt-2 pt-3 border-t border-border space-y-2">
