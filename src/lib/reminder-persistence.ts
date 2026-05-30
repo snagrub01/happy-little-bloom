@@ -6,8 +6,6 @@ export interface ReminderSettings {
   bagOut: { enabled: boolean; timing: string };
   washReminder: { enabled: boolean; timing: string };
   couponReminder: { enabled: boolean };
-  leavingHome: { enabled: boolean };
-  leavingWork: { enabled: boolean };
 }
 
 const defaults: ReminderSettings = {
@@ -16,8 +14,6 @@ const defaults: ReminderSettings = {
   bagOut: { enabled: true, timing: "5" },
   washReminder: { enabled: true, timing: "14" },
   couponReminder: { enabled: true },
-  leavingHome: { enabled: true },
-  leavingWork: { enabled: true },
 };
 
 export function saveReminderSettings(s: ReminderSettings) {
