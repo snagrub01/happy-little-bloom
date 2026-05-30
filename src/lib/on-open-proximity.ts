@@ -12,7 +12,7 @@ import { loadStoreData, loadStoreGeofences } from "./store-persistence";
 import { sendLocalNotification } from "./notifications";
 
 const SESSION_KEY = "bagbuddy-onopen-fired";
-const DEFAULT_RADIUS_METERS = 500;
+const DEFAULT_RADIUS_FEET = 1800;
 const FEET_TO_METERS = 0.3048;
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
