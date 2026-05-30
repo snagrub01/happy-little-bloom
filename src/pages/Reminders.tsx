@@ -185,51 +185,9 @@ const Reminders = () => {
           </Card>
         </motion.div>
 
-        {/* Locations */}
+        {/* Home address */}
         <HomeLocationCard delay={0.13} />
-        <WorkLocationCard delay={0.135} />
 
-        {/* Leaving Home reminder */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.14 }}>
-          <Card className="p-4 border border-border">
-            <div className="flex items-start justify-between mb-1">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                  <LogOut className="w-5 h-5 text-primary" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-card-foreground">Leaving home reminder</p>
-                  <p className="text-xs text-muted-foreground">Reminds you to open the app when you leave home</p>
-                </div>
-              </div>
-              <Switch
-                checked={leavingHome.enabled}
-                onCheckedChange={(checked) => handleToggle(setLeavingHome, leavingHome, checked)}
-              />
-            </div>
-          </Card>
-        </motion.div>
-
-        {/* Leaving Work reminder */}
-        <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.145 }}>
-          <Card className="p-4 border border-border">
-            <div className="flex items-start justify-between mb-1">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-secondary flex items-center justify-center">
-                  <LogOut className="w-5 h-5 text-secondary-foreground" />
-                </div>
-                <div>
-                  <p className="font-semibold text-sm text-card-foreground">Leaving work reminder</p>
-                  <p className="text-xs text-muted-foreground">Reminds you to open the app when you leave work</p>
-                </div>
-              </div>
-              <Switch
-                checked={leavingWork.enabled}
-                onCheckedChange={(checked) => handleToggle(setLeavingWork, leavingWork, checked)}
-              />
-            </div>
-          </Card>
-        </motion.div>
 
         {/* Put bags back in car */}
         <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
