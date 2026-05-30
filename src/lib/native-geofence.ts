@@ -1,6 +1,6 @@
 // Radar handles all native geofencing and background location — no WebView dependency
 
-import Radar from "capacitor-radar";
+import { Radar } from "capacitor-radar";
 import { isNative } from "./native";
 import { sendLocalNotification } from "./notifications";
 
