@@ -9,7 +9,14 @@ import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Slider } from "@/components/ui/slider";
 import { saveReminderSettings, loadReminderSettings } from "@/lib/reminder-persistence";
-import { requestNotificationPermission, scheduleBagReminder, sendLocalNotification } from "@/lib/notifications";
+import {
+  requestNotificationPermission,
+  sendLocalNotification,
+  scheduleWashReminderAt,
+  cancelWashReminder,
+  scheduleBagReturnReminder,
+  cancelBagReturnReminder,
+} from "@/lib/notifications";
 import { startGeofenceWatching } from "@/lib/geofence";
 import { loadStoreData } from "@/lib/store-persistence";
 import { toast } from "sonner";
@@ -38,27 +45,25 @@ const Reminders = () => {
     startGeofenceWatching(enabledStores);
   }, [bagIn, leavingHome, leavingWork, bagOut]);
 
-  // Schedule bag-return reminder when enabled
+  // Bag-return reminder: OS-scheduled, persisted, single notification ID 1002.
   useEffect(() => {
     if (bagOut.enabled) {
-      // This is activated in real usage when the user arrives home
-      // For now we set up the timer from the settings
+      const minutes = parseInt(bagOut.timing, 10) || 5;
+      scheduleBagReturnReminder(minutes, { daily: false }).catch(() => {});
+    } else {
+      cancelBagReturnReminder().catch(() => {});
     }
-  }, [bagOut]);
+  }, [bagOut.enabled, bagOut.timing]);
 
-  // Wash reminder scheduling
+  // Wash reminder: OS-scheduled, persisted, single notification ID 1001.
   useEffect(() => {
-    if (!washReminder.enabled) return;
-    const days = parseInt(washReminder.timing, 10);
-    const ms = days * 24 * 60 * 60 * 1000;
-    const timer = setInterval(() => {
-      sendLocalNotification(
-        "🧺 Time to Wash Your Bags",
-        `It's been ${days} days — time to wash your canvas grocery bags!`
-      );
-    }, ms);
-    return () => clearInterval(timer);
-  }, [washReminder]);
+    if (washReminder.enabled) {
+      const days = parseInt(washReminder.timing, 10) || 14;
+      scheduleWashReminderAt(days).catch(() => {});
+    } else {
+      cancelWashReminder().catch(() => {});
+    }
+  }, [washReminder.enabled, washReminder.timing]);
 
   const handleToggle = (setter: Function, current: any, checked: boolean) => {
     if (checked) {
