@@ -1,76 +1,58 @@
-# Restore Reliable Notification Delivery
+# Plan: PWA-honest reminders + scheduled notifications
 
-## Root causes identified
+## 1. On-open location proximity check
 
-Reading `src/lib/notifications.ts`, `src/lib/native-geofence.ts`, `src/lib/geofence.ts`, `src/main.tsx`, `src/App.tsx`, `src/lib/startup.ts`, and `capacitor.config.ts`, three concrete bugs explain why notifications stopped firing after the migration:
+Create `src/lib/on-open-proximity.ts` with `runOnOpenProximityCheck()`:
+- Use `@capacitor/geolocation` → `requestPermissions()` then `getCurrentPosition()` (web falls back to `navigator.geolocation`).
+- Load stores via `loadStoreData()` from `store-persistence.ts`; filter to `enabled` set.
+- Read per-store radius from `loadStoreGeofences()`; default to **500 m** when missing (convert feet→meters if needed, but store new default in meters via a new helper).
+- Haversine distance between current position and each store's lat/lng.
+- Track fired stores in `sessionStorage` under `bagbuddy-onopen-fired` (JSON array of store IDs); skip if already fired this session.
+- For each store within radius: call `sendLocalNotification("🛍️ Bag Au Pair", "Don't forget your bags — you're near {name}")`, then add its ID to the session set.
+- Logs: `[on-open] checking location against N stores`, `[on-open] near {name}, firing reminder`, plus a warn on permission denied.
 
-1. **No Android notification channel.** Android 8+ silently drops any notification whose `channelId` doesn't match a registered channel. We never call `LocalNotifications.createChannel(...)`, and we never set a `channelId` on scheduled notifications. On many devices this means the notification is accepted by the OS but never shown in the tray.
-2. **`schedule({ at: now + 100ms })` for "immediate" notifications.** The Capacitor LocalNotifications plugin treats `schedule.at` as a future alarm. With a 100 ms offset, if the app is foreground the notification is sometimes suppressed by the OS, and with no channel + no sound/priority it never surfaces. Immediate user-visible notifications should be scheduled without `schedule.at` (or `at: new Date(Date.now() + 1000)` *with* a channel) and with explicit `sound`, `smallIcon`, `channelId`.
-3. **`smallIcon: 'ic_stat_icon_config_sample'` references a drawable that doesn't exist** in the Android project (it's the Capacitor sample placeholder). When the small icon can't be resolved, Android 12+ drops the notification entirely. We need to fall back to the app icon and let the user replace it later.
+Wire it into `src/App.tsx` inside a `useEffect(() => { ... }, [])` that runs once on mount (fire-and-forget, never blocks render).
 
-Secondary issues:
+## 2. Wash reminder via real scheduled notification
 
-4. `requestNotificationPermission()` is called from `initAppServices()` which runs *before* React mounts. On Android 13+ this is fine, but on iOS the system dialog must come from a user gesture — the "Enable notifications" button on `/reminders` already handles this, so startup permission request should be best-effort and never block geofence startup.
-5. No `LocalNotifications.addListener('localNotificationReceived' | 'localNotificationActionPerformed')` — we have zero visibility into whether the OS actually delivered.
-6. `genId()` mixes `Date.now() % 2147480000 + nextId` which can collide and exceed 32-bit signed range over time. Switch to a simple monotonically incrementing counter persisted in memory.
+Add to `src/lib/notifications.ts`:
+- `WASH_NOTIF_ID = 1001`, `WASH_SCHEDULED_AT_KEY = "bagbuddy-wash-scheduled-at"`.
+- `scheduleWashReminderAt(everyDays)`:
+  - `LocalNotifications.cancel({ notifications: [{ id: WASH_NOTIF_ID }] })`.
+  - Compute `at = new Date(Date.now() + everyDays * 86400_000)`.
+  - `LocalNotifications.schedule({ notifications: [{ id: WASH_NOTIF_ID, title, body, channelId, smallIcon, schedule: { at } }] })`.
+  - `localStorage.setItem(WASH_SCHEDULED_AT_KEY, at.toISOString())`.
+- `cancelWashReminder()`: cancel + remove localStorage key.
+- `ensureWashReminderScheduled(everyDays)`: on app launch, if enabled and stored date missing or in the past, reschedule.
 
-## Fix plan (notifications only — GPS logic untouched)
+Update `src/pages/Reminders.tsx`:
+- Replace the `setInterval` wash `useEffect` with a call to `scheduleWashReminderAt(parseInt(washReminder.timing, 10))` when enabled, `cancelWashReminder()` when disabled, re-run when interval changes.
 
-### 1. `src/lib/notifications.ts` — rewrite scheduling
+Update `src/App.tsx` on-open effect to also call `ensureWashReminderScheduled(...)` based on loaded reminder settings.
 
-- Add `ensureNotificationChannel()` that on native + Android calls `LocalNotifications.createChannel({ id: 'bagaupair-default', name: 'Bag Reminders', importance: 5, visibility: 1, sound: undefined, vibration: true, lights: true })`. Call it once, memoized.
-- `requestNotificationPermission()` — on native, call `ensureNotificationChannel()` after permission is granted. Log permission state.
-- `sendLocalNotification(title, body, opts)` — on native:
-  - Call `ensureNotificationChannel()`.
-  - Build payload with `channelId: 'bagaupair-default'`, `smallIcon: 'ic_stat_icon_config_sample'` removed (let Capacitor fall back to app icon), `largeIcon` omitted, `sound: undefined`, `extra`.
-  - **Do not pass `schedule.at` for immediate notifications.** Omitting `schedule` causes Capacitor to fire immediately.
-  - Wrap in try/catch; log the *exact* error (`e?.message`, `e?.code`) on failure.
-- `scheduleBagReminder` / `scheduleWashReminder` — keep `schedule.at` for future ones, add `channelId`, drop bogus `smallIcon`.
-- Replace `genId()` with a simple incrementing counter (`++nextId`) seeded from `Date.now() & 0x7fffffff >> 1`.
-- Add `LocalNotifications.addListener('localNotificationReceived', ...)` once at module init logging `[notifications] OS delivered id=...`.
+## 3. "Put bags back in car" scheduled reminder
 
-### 2. `src/lib/startup.ts` — make permission non-blocking + create channel early
+Add to `src/lib/notifications.ts`:
+- `BAG_RETURN_NOTIF_ID = 1002`, `BAG_RETURN_KEY = "bagbuddy-bag-return-scheduled-at"`.
+- `scheduleBagReturnReminder(delayMinutes, { daily })`: cancel existing 1002, schedule with `schedule: { at, repeats: daily, every: "day" }` when daily; otherwise one-shot at `Date.now() + delayMinutes*60_000`. Persist scheduled timestamp.
+- `cancelBagReturnReminder()`.
 
-- `initAppServices()`: call `ensureNotificationChannel()` *before* requesting permission, so the channel exists even if permission is later granted via the Reminders button.
-- Wrap `requestNotificationPermission()` in `.catch()` so a rejection never prevents `startGeofenceWatching()` from running.
-- Add `[startup] channel ready / permission=...` logs.
+In `Reminders.tsx`:
+- Replace the empty bag-return `useEffect` with one that, when `bagOut.enabled`, calls `scheduleBagReturnReminder(parseInt(bagOut.timing,10), { daily: false })`, and when disabled calls `cancelBagReturnReminder()`.
+- Existing `reminder-persistence` already persists `bagOut` enabled+timing.
 
-### 3. `src/lib/geofence.ts` — verify trigger path
+## 4. Honest PWA copy
 
-- Add `[geofence] TRIGGER store=<name> dist=<x>mi threshold=<y>mi` log immediately before each `sendLocalNotification(...)` call (store proximity, home arrival, leaving home, leaving work).
-- Wrap each `sendLocalNotification(...)` in `.then(() => log success).catch(err => console.error)` so we see exactly which call fails.
+Replace misleading language across the app. Specific edits:
 
-### 4. `src/lib/native-geofence.ts` — confirm callback fires
+- `src/components/BatteryOptimizationPrompt.tsx`: change "To receive geofence and reminder notifications even when your screen…" → "So scheduled reminders (wash, bag return) fire reliably while your screen is locked."
+- `src/pages/Reminders.tsx` info card (line ~360): rewrite to "Open the app before you head out and we'll remind you when you're near your stores. Wash and bag-return reminders run on your phone's scheduler."
+- Add a new tip card near the top of Reminders page (above the "Enable notifications" card): "💡 Tip: Open the app before leaving home for the best reminder experience."
+- `src/pages/Index.tsx`, `src/pages/Install.tsx`, `src/pages/Stores.tsx`, `src/components/HomeLocationCard.tsx`, `WorkLocationCard.tsx`, `GeofenceDebugPanel.tsx`: grep each for any "automatic", "background", "when you enter", "even when…closed", "automatically notifies"; rewrite to "Reminds you when you open the app near a store" / "Open the app before you head out…" style. (I'll do an exhaustive ripgrep pass during implementation and update each match.)
 
-- Already logs each bg location. Add a counter so we can see "N location updates received in this session" — useful when buyer says "notifications never fired" we can tell if it was GPS or notifications.
+## Technical notes
 
-### 5. `src/pages/Reminders.tsx` — add a "Send test notification" button
-
-- Right next to the existing "Enable notifications" button, add a button that calls `sendLocalNotification('🧪 Test', 'If you see this in your tray, notifications work!')`. This lets the buyer verify the fix in one tap without driving to a store.
-
-### 6. Android manifest reminder (no code change in Lovable)
-
-After `npx cap sync`, the user must ensure `AndroidManifest.xml` still has `POST_NOTIFICATIONS` (already documented). No new permissions required.
-
-## Files touched
-
-- `src/lib/notifications.ts` — rewrite scheduling, add channel, add receive listener
-- `src/lib/startup.ts` — non-blocking permission, early channel creation
-- `src/lib/geofence.ts` — trigger logs + per-call error handling
-- `src/lib/native-geofence.ts` — location counter
-- `src/pages/Reminders.tsx` — "Send test notification" debug button
-
-## How we'll verify
-
-After `git pull && npm install && npm run build && npx cap sync android && npx cap run android`:
-
-1. Open app → tap **Send test notification** → notification must appear in tray within 1 second.
-2. `adb logcat | grep -E "notifications|geofence|startup"` shows: channel created → permission granted → test scheduled → `OS delivered`.
-3. Walk into a geofence (or use Android Studio's location mock) → see `[geofence] TRIGGER ...` → `[notifications] native scheduled` → `[notifications] OS delivered` → tray notification.
-4. Lock screen, repeat geofence trigger — should still fire (the background watcher + scheduled notification both run natively).
-
-## Out of scope
-
-- GPS / background-geolocation behavior (untouched — only logging added).
-- iOS-specific permission flow (already handled via Reminders button).
-- Custom notification icons / branded `ic_stat_*` drawable (user can add later in Android Studio; for now we fall back to the app icon so notifications are visible).
+- Geolocation plugin `@capacitor/geolocation` is already a Capacitor-standard plugin; if missing from `package.json` I'll install it.
+- All new notifications use the existing `default_notifications` channel + `ic_stat_icon`.
+- No changes to Radar / `native-geofence.ts` — those keep handling true native geofence entry events.
+- Session-only dedupe via `sessionStorage` (clears on app cold start, which is exactly "once per app open session").
