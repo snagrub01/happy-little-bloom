@@ -97,10 +97,11 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
               <MapPin className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <p className="font-semibold text-sm text-card-foreground">Leaving Home Geofence</p>
+              <p className="font-semibold text-sm text-card-foreground">Home Address</p>
               <p className="text-xs text-muted-foreground">
-                {home ? "Reminds you to open the app when leaving" : "Set so leaving-home reminder works"}
+                {home ? "Used to detect when you arrive home" : "Set your home so home-based reminders work"}
               </p>
+
             </div>
           </div>
         </div>
@@ -119,10 +120,10 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-muted-foreground">Leaving geofence radius:</span>
-                <span className="text-xs font-semibold text-foreground">{home.radiusFeet || 500} ft</span>
+                <span className="text-xs font-semibold text-foreground">{home.radiusFeet || 1800} ft</span>
               </div>
               <Slider
-                value={[home.radiusFeet || 500]}
+                value={[home.radiusFeet || 1800]}
                 onValueChange={([v]) => {
                   const updated = { ...home, radiusFeet: v };
                   setHome(updated);
@@ -137,7 +138,7 @@ const HomeLocationCard = ({ delay = 0.13 }: Props) => {
                 <span>1,800 ft</span>
               </div>
             </div>
-            <GeofenceMap lat={home.lat} lon={home.lon} radiusFeet={home.radiusFeet || 500} />
+            <GeofenceMap lat={home.lat} lon={home.lon} radiusFeet={home.radiusFeet || 1800} />
           </div>
         ) : (
           <div className="mt-2 pt-3 border-t border-border space-y-2">

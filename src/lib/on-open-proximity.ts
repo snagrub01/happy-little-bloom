@@ -12,7 +12,7 @@ import { loadStoreData, loadStoreGeofences } from "./store-persistence";
 import { sendLocalNotification } from "./notifications";
 
 const SESSION_KEY = "bagbuddy-onopen-fired";
-const DEFAULT_RADIUS_METERS = 500;
+const DEFAULT_RADIUS_FEET = 1800;
 const FEET_TO_METERS = 0.3048;
 
 function haversineMeters(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -86,7 +86,7 @@ export async function runOnOpenProximityCheck(): Promise<void> {
   for (const store of enabledStores) {
     if (fired.has(store.id)) continue;
     const radiusFeet = radii.get(store.id);
-    const radiusMeters = radiusFeet ? radiusFeet * FEET_TO_METERS : DEFAULT_RADIUS_METERS;
+    const radiusMeters = (radiusFeet ?? DEFAULT_RADIUS_FEET) * FEET_TO_METERS;
     const dist = haversineMeters(pos.lat, pos.lon, store.lat, store.lon);
     if (dist <= radiusMeters) {
       console.log(`[on-open] near ${store.name}, firing reminder`);

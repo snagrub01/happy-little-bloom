@@ -1,58 +1,39 @@
-# Plan: PWA-honest reminders + scheduled notifications
+# Plan
 
-## 1. On-open location proximity check
+## 1. Radius: max 1800 ft, default 1800 ft, feet labels everywhere
 
-Create `src/lib/on-open-proximity.ts` with `runOnOpenProximityCheck()`:
-- Use `@capacitor/geolocation` → `requestPermissions()` then `getCurrentPosition()` (web falls back to `navigator.geolocation`).
-- Load stores via `loadStoreData()` from `store-persistence.ts`; filter to `enabled` set.
-- Read per-store radius from `loadStoreGeofences()`; default to **500 m** when missing (convert feet→meters if needed, but store new default in meters via a new helper).
-- Haversine distance between current position and each store's lat/lng.
-- Track fired stores in `sessionStorage` under `bagbuddy-onopen-fired` (JSON array of store IDs); skip if already fired this session.
-- For each store within radius: call `sendLocalNotification("🛍️ Bag Au Pair", "Don't forget your bags — you're near {name}")`, then add its ID to the session set.
-- Logs: `[on-open] checking location against N stores`, `[on-open] near {name}, firing reminder`, plus a warn on permission denied.
+- `src/pages/Stores.tsx`: change `DEFAULT_GEOFENCE_FEET = 250` → `1800`. Slider min/max already 25–1800 ft (no change). Labels already in ft.
+- `src/components/HomeLocationCard.tsx` & `src/components/WorkLocationCard.tsx` (the latter will be deleted, see §2): default `home.radiusFeet || 500` → `|| 1800`. Slider already max 1800.
+- `src/lib/on-open-proximity.ts`: replace `DEFAULT_RADIUS_METERS = 500` with `DEFAULT_RADIUS_FEET = 1800`, and compute `radiusMeters = (radiusFeet ?? DEFAULT_RADIUS_FEET) * FEET_TO_METERS`. Conversion `0.3048` is already correct.
+- `src/lib/geofence.ts`: `DEFAULT_LEAVING_RADIUS_FEET` becomes moot once leaving reminders are removed (see §2), but if any store-related logic still uses a default, bump to `1800`.
+- Quick grep pass to make sure no remaining UI string says "meters" / "m" for user-facing radius.
 
-Wire it into `src/App.tsx` inside a `useEffect(() => { ... }, [])` that runs once on mount (fire-and-forget, never blocks render).
+## 2. Remove Leaving Home & Leaving Work reminders
 
-## 2. Wash reminder via real scheduled notification
+- `src/pages/Reminders.tsx`:
+  - Remove `leavingHome` / `leavingWork` state, the two `<Card>` blocks (lines ~195–235), `<WorkLocationCard />`, and references in dependency arrays.
+  - Trim the persist `useEffect` and the geofence-restart `useEffect` accordingly.
+- `src/lib/reminder-persistence.ts`: drop `leavingHome` and `leavingWork` from `ReminderSettings` + defaults.
+- `src/lib/geofence.ts`: delete the "Leaving Home reminder" and "Leaving Work reminder" branches, related state fields (`wasAtHome`, `wasAtWork`, `leavingHomeNotified`, `leavingWorkNotified`), and the `hasLeavingHome` / `hasLeavingWork` early-return gates. Keep store-proximity logic intact.
+- `src/components/WorkLocationCard.tsx` and `src/lib/work-location.ts`: delete (no longer referenced). Remove `WORK_KEY` localStorage by clearing on next load is optional; we'll just stop reading/writing it.
+- `src/components/GeofenceDebugPanel.tsx`: remove the Leaving Home / Leaving Work panels and `work-location` import. Keep the store-proximity portion.
+- Any remaining imports of removed modules get cleaned up.
 
-Add to `src/lib/notifications.ts`:
-- `WASH_NOTIF_ID = 1001`, `WASH_SCHEDULED_AT_KEY = "bagbuddy-wash-scheduled-at"`.
-- `scheduleWashReminderAt(everyDays)`:
-  - `LocalNotifications.cancel({ notifications: [{ id: WASH_NOTIF_ID }] })`.
-  - Compute `at = new Date(Date.now() + everyDays * 86400_000)`.
-  - `LocalNotifications.schedule({ notifications: [{ id: WASH_NOTIF_ID, title, body, channelId, smallIcon, schedule: { at } }] })`.
-  - `localStorage.setItem(WASH_SCHEDULED_AT_KEY, at.toISOString())`.
-- `cancelWashReminder()`: cancel + remove localStorage key.
-- `ensureWashReminderScheduled(everyDays)`: on app launch, if enabled and stored date missing or in the past, reschedule.
+## 3. Home Address section (keep & surface)
 
-Update `src/pages/Reminders.tsx`:
-- Replace the `setInterval` wash `useEffect` with a call to `scheduleWashReminderAt(parseInt(washReminder.timing, 10))` when enabled, `cancelWashReminder()` when disabled, re-run when interval changes.
+The existing `HomeLocationCard` already satisfies the spec (current-location button + manual address input via Nominatim, persisted to localStorage, label shown with clear/edit affordances). After §2 it remains the sole location card on the Reminders page. No new component needed; we just:
 
-Update `src/App.tsx` on-open effect to also call `ensureWashReminderScheduled(...)` based on loaded reminder settings.
-
-## 3. "Put bags back in car" scheduled reminder
-
-Add to `src/lib/notifications.ts`:
-- `BAG_RETURN_NOTIF_ID = 1002`, `BAG_RETURN_KEY = "bagbuddy-bag-return-scheduled-at"`.
-- `scheduleBagReturnReminder(delayMinutes, { daily })`: cancel existing 1002, schedule with `schedule: { at, repeats: daily, every: "day" }` when daily; otherwise one-shot at `Date.now() + delayMinutes*60_000`. Persist scheduled timestamp.
-- `cancelBagReturnReminder()`.
-
-In `Reminders.tsx`:
-- Replace the empty bag-return `useEffect` with one that, when `bagOut.enabled`, calls `scheduleBagReturnReminder(parseInt(bagOut.timing,10), { daily: false })`, and when disabled calls `cancelBagReturnReminder()`.
-- Existing `reminder-persistence` already persists `bagOut` enabled+timing.
-
-## 4. Honest PWA copy
-
-Replace misleading language across the app. Specific edits:
-
-- `src/components/BatteryOptimizationPrompt.tsx`: change "To receive geofence and reminder notifications even when your screen…" → "So scheduled reminders (wash, bag return) fire reliably while your screen is locked."
-- `src/pages/Reminders.tsx` info card (line ~360): rewrite to "Open the app before you head out and we'll remind you when you're near your stores. Wash and bag-return reminders run on your phone's scheduler."
-- Add a new tip card near the top of Reminders page (above the "Enable notifications" card): "💡 Tip: Open the app before leaving home for the best reminder experience."
-- `src/pages/Index.tsx`, `src/pages/Install.tsx`, `src/pages/Stores.tsx`, `src/components/HomeLocationCard.tsx`, `WorkLocationCard.tsx`, `GeofenceDebugPanel.tsx`: grep each for any "automatic", "background", "when you enter", "even when…closed", "automatically notifies"; rewrite to "Reminds you when you open the app near a store" / "Open the app before you head out…" style. (I'll do an exhaustive ripgrep pass during implementation and update each match.)
+- Keep `<HomeLocationCard delay={0.13} />` in `Reminders.tsx`.
+- Update its subtitle copy (currently mentions "leaving-home reminder") to: "Used to detect when you're near saved stores."
+- Confirm save/load via `src/lib/home-location.ts` (already in place).
 
 ## Technical notes
 
-- Geolocation plugin `@capacitor/geolocation` is already a Capacitor-standard plugin; if missing from `package.json` I'll install it.
-- All new notifications use the existing `default_notifications` channel + `ic_stat_icon`.
-- No changes to Radar / `native-geofence.ts` — those keep handling true native geofence entry events.
-- Session-only dedupe via `sessionStorage` (clears on app cold start, which is exactly "once per app open session").
+- localStorage keys removed in §2: `bagbuddy-work-location`, and the now-unused `leavingHome`/`leavingWork` subkeys inside `bagbuddy-reminders` (handled gracefully by `loadReminderSettings` spreading over defaults).
+- No backend or schema changes.
+- No new dependencies.
+
+## Out of scope
+
+- Changing the store search-radius slider on Stores.tsx (that's miles for finding stores, not the geofence alert radius).
+- Reworking notification scheduling for wash/bag-return (already correct).

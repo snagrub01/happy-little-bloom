@@ -2,35 +2,11 @@ import type { StoreResult } from "./stores-api";
 import { sendLocalNotification, requestNotificationPermission } from "./notifications";
 import { loadReminderSettings } from "./reminder-persistence";
 import { loadHomeLocation } from "./home-location";
-import { loadWorkLocation } from "./work-location";
 import { loadStoreGeofences } from "./store-persistence";
 import { gentleVibrate } from "./vibration";
 import { isNative } from "./native";
 // Native background geolocation + transition detection lives entirely in
 // the Android layer. JS no longer starts or stops a native watcher here.
-
-const STATE_KEY = "bagbuddy-geofence-state";
-
-interface PersistedState {
-  wasAtHome: boolean;
-  wasAtWork: boolean;
-  leavingHomeNotified: boolean;
-  leavingWorkNotified: boolean;
-}
-
-function loadState(): PersistedState {
-  try {
-    const raw = localStorage.getItem(STATE_KEY);
-    if (raw) return { ...defaultState(), ...JSON.parse(raw) };
-  } catch {}
-  return defaultState();
-}
-function defaultState(): PersistedState {
-  return { wasAtHome: false, wasAtWork: false, leavingHomeNotified: false, leavingWorkNotified: false };
-}
-function saveState(s: PersistedState) {
-  try { localStorage.setItem(STATE_KEY, JSON.stringify(s)); } catch {}
-}
 
 let webWatchId: number | null = null;
 let notifiedStoreIds = new Set<string>();
@@ -65,16 +41,14 @@ function getStoreThresholdMiles(storeId: string, geofences: Map<string, number>,
   return getThresholdMiles(fallbackTiming);
 }
 
-const DEFAULT_LEAVING_RADIUS_FEET = 500;
-function getLeavingThresholdMiles(radiusFeet?: number): number {
-  return (radiusFeet || DEFAULT_LEAVING_RADIUS_FEET) / 5280;
+const DEFAULT_HOME_RADIUS_FEET = 1800;
+function getHomeThresholdMiles(radiusFeet?: number): number {
+  return (radiusFeet || DEFAULT_HOME_RADIUS_FEET) / 5280;
 }
 
 function handleLocation(latitude: number, longitude: number, enabledStores: StoreResult[]) {
   const settings = loadReminderSettings();
   const geofences = loadStoreGeofences();
-  const state = loadState();
-  let dirty = false;
 
   // --- Store proximity alerts ---
   if (settings.bagIn.enabled) {
@@ -115,7 +89,7 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
   if (settings.bagOut.enabled) {
     const home = loadHomeLocation();
     if (home) {
-      const homeThreshold = getLeavingThresholdMiles(home.radiusFeet);
+      const homeThreshold = getHomeThresholdMiles(home.radiusFeet);
       const distHome = distanceMiles(latitude, longitude, home.lat, home.lon);
 
       if (distHome <= homeThreshold && !homeNotified) {
@@ -137,85 +111,20 @@ function handleLocation(latitude: number, longitude: number, enabledStores: Stor
       }
     }
   }
-
-  // --- Leaving Home reminder ---
-  if (settings.leavingHome.enabled) {
-    const home = loadHomeLocation();
-    if (home) {
-      const homeThreshold2 = getLeavingThresholdMiles(home.radiusFeet);
-      const distHome = distanceMiles(latitude, longitude, home.lat, home.lon);
-      if (distHome <= homeThreshold2) {
-        if (!state.wasAtHome || state.leavingHomeNotified) {
-          state.wasAtHome = true;
-          state.leavingHomeNotified = false;
-          dirty = true;
-        }
-      }
-      if (distHome > homeThreshold2 * 3 && state.wasAtHome && !state.leavingHomeNotified) {
-        state.leavingHomeNotified = true;
-        state.wasAtHome = false;
-        dirty = true;
-        console.log("[geofence] TRIGGER leaving-home dist=" + distHome.toFixed(3) + "mi");
-        sendLocalNotification(
-          "🛍️ Open Bag Au Pair?",
-          "You're leaving home — open Bag Au Pair so your store reminders are ready!",
-          { urgent: true }
-        ).catch((err) => console.error("[geofence] leaving-home notify failed", err));
-      }
-    }
-  }
-
-  // --- Leaving Work reminder ---
-  if (settings.leavingWork.enabled) {
-    const work = loadWorkLocation();
-    if (work) {
-      const workThreshold = getLeavingThresholdMiles(work.radiusFeet);
-      const distWork = distanceMiles(latitude, longitude, work.lat, work.lon);
-      if (distWork <= workThreshold) {
-        if (!state.wasAtWork || state.leavingWorkNotified) {
-          state.wasAtWork = true;
-          state.leavingWorkNotified = false;
-          dirty = true;
-        }
-      }
-      if (distWork > workThreshold * 3 && state.wasAtWork && !state.leavingWorkNotified) {
-        state.leavingWorkNotified = true;
-        state.wasAtWork = false;
-        dirty = true;
-        console.log("[geofence] TRIGGER leaving-work dist=" + distWork.toFixed(3) + "mi");
-        sendLocalNotification(
-          "🛍️ Open Bag Au Pair?",
-          "Leaving work — stopping at the store? Open Bag Au Pair so your reminders are ready!",
-          { urgent: true }
-        ).catch((err) => console.error("[geofence] leaving-work notify failed", err));
-      }
-    }
-  }
-
-  if (dirty) saveState(state);
 }
 
 export async function startGeofenceWatching(enabledStores: StoreResult[]) {
   const settings = loadReminderSettings();
   const hasStores = enabledStores.length > 0 && settings.bagIn.enabled;
-  const hasLeavingHome = settings.leavingHome.enabled && !!loadHomeLocation();
-  const hasLeavingWork = settings.leavingWork.enabled && !!loadWorkLocation();
   const hasBagOut = settings.bagOut.enabled && !!loadHomeLocation();
-  if (!hasStores && !hasLeavingHome && !hasLeavingWork && !hasBagOut) {
+  if (!hasStores && !hasBagOut) {
     console.log("[geofence] no triggers enabled — stopping watcher");
     await stopGeofenceWatching();
     return;
   }
 
   console.log(
-    "[geofence] startGeofenceWatching stores=" +
-      enabledStores.length +
-      " leavingHome=" +
-      hasLeavingHome +
-      " leavingWork=" +
-      hasLeavingWork +
-      " bagOut=" +
-      hasBagOut
+    "[geofence] startGeofenceWatching stores=" + enabledStores.length + " bagOut=" + hasBagOut
   );
 
   requestNotificationPermission();
