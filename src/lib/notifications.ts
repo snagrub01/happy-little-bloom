@@ -105,7 +105,7 @@ export async function ensureWashReminderScheduled(everyDays: number): Promise<vo
     if (!Number.isFinite(target)) return;
     if (target <= Date.now()) {
       await sendLocalNotification(
-        "🧺 Time to wash your bags",
+        "Time to Wash Your Bags",
         `It's been ${everyDays} days — time to wash your canvas grocery bags!`
       );
       const next = Date.now() + everyDays * 24 * 60 * 60 * 1000;
@@ -163,7 +163,7 @@ export async function ensureBagReturnFired(): Promise<void> {
     if (!Number.isFinite(target)) return;
     if (target <= Date.now()) {
       await sendLocalNotification(
-        "🚗 Put your bags back!",
+        "Time to Put Your Bags Back in the Car",
         "Time to put your reusable bags back in the car."
       );
       localStorage.removeItem(BAG_RETURN_TARGET_KEY);

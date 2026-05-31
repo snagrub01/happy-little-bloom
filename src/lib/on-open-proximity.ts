@@ -65,6 +65,7 @@ function getCurrentPosition(): Promise<{ lat: number; lon: number } | null> {
 }
 
 export async function runOnOpenProximityCheck(): Promise<void> {
+  console.log("[on-open] proximity check started");
   const granted = await requestNotificationPermission();
   console.log(`[on-open] notification permission granted=${granted}`);
   if (!granted) return;

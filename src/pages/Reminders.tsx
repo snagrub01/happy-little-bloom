@@ -15,6 +15,8 @@ import {
   cancelWashReminder,
   scheduleBagReturnReminder,
   cancelBagReturnReminder,
+  getWashReminderTarget,
+  getBagReturnTarget,
 } from "@/lib/notifications";
 import { startGeofenceWatching } from "@/lib/geofence";
 import { loadStoreData } from "@/lib/store-persistence";
@@ -223,6 +225,11 @@ const Reminders = () => {
                 </Select>
               </div>
             )}
+            {bagOut.enabled && getBagReturnTarget() && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Next reminder: {new Date(getBagReturnTarget()!).toLocaleString()}
+              </p>
+            )}
           </Card>
         </motion.div>
 
@@ -258,6 +265,11 @@ const Reminders = () => {
                   </SelectContent>
                 </Select>
               </div>
+            )}
+            {washReminder.enabled && getWashReminderTarget() && (
+              <p className="text-xs text-muted-foreground mt-2">
+                Next wash: {new Date(getWashReminderTarget()!).toLocaleDateString()}
+              </p>
             )}
           </Card>
         </motion.div>

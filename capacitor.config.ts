@@ -13,18 +13,7 @@ const config: CapacitorConfig = {
   //   url: 'https://ce3c2b63-ca1a-4694-8ac4-629876f3aab7.lovableproject.com?forceHideBadge=true',
   //   cleartext: true,
   // },
-  plugins: {
-    LocalNotifications: {
-      smallIcon: 'ic_stat_icon_config_sample',
-      iconColor: '#488AFF',
-    },
-    BackgroundGeolocation: {
-      debug: false,
-      stopOnTerminate: false,
-      startOnBoot: true,
-    },
-    Radar: {},
-  },
+  plugins: {},
 };
 
 export default config;
