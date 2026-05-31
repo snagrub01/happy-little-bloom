@@ -4,9 +4,7 @@ import { loadReminderSettings } from "./reminder-persistence";
 import { loadHomeLocation } from "./home-location";
 import { loadStoreGeofences } from "./store-persistence";
 import { gentleVibrate } from "./vibration";
-import { isNative } from "./native";
-// Native background geolocation + transition detection lives entirely in
-// the Android layer. JS no longer starts or stops a native watcher here.
+// PWA-only foreground geofence watcher using navigator.geolocation.
 
 let webWatchId: number | null = null;
 let notifiedStoreIds = new Set<string>();
@@ -128,17 +126,6 @@ export async function startGeofenceWatching(enabledStores: StoreResult[]) {
   );
 
   requestNotificationPermission();
-
-  // On native: do nothing here. The Android layer owns transition
-  // detection and notification display via registered geofences.
-  if (isNative()) {
-    console.log("[geofence] native platform — JS watcher disabled (handled by Android)");
-    if (webWatchId !== null) {
-      navigator.geolocation.clearWatch(webWatchId);
-      webWatchId = null;
-    }
-    return;
-  }
 
   await stopGeofenceWatching();
 
