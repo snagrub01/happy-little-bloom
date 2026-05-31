@@ -15,6 +15,8 @@ import {
   cancelWashReminder,
   scheduleBagReturnReminder,
   cancelBagReturnReminder,
+  getWashReminderTarget,
+  getBagReturnTarget,
 } from "@/lib/notifications";
 import { startGeofenceWatching } from "@/lib/geofence";
 import { loadStoreData } from "@/lib/store-persistence";
