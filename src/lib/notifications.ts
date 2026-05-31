@@ -1,156 +1,81 @@
 /**
- * Foreground-only notification helpers.
+ * Web Notifications API wrappers (PWA-only).
  *
- * Background geofence notifications are fired natively by
- * GeofenceReceiver.java — not from this file.
- *
- * This module handles:
- *   - Android notification channel setup (so manual + native-fired
- *     notifications share a single high-importance channel)
- *   - Foreground permission requests (called from UI / app mount)
- *   - Manual / test notifications triggered while the app is open
- *     (Reminders page "Test" button, in-foreground confirmations)
- *
- * It does NOT:
- *   - subscribe to geofence callbacks
- *   - schedule recovery / reconciliation on app restart
- *   - assume it can run from a background JS callback
+ * No Capacitor native plugins. All notifications use `new Notification()`
+ * after `Notification.requestPermission()`. Scheduled reminders (wash,
+ * bag-return) are persisted to localStorage as target timestamps and
+ * checked on every app open; if the target time has passed, a Web
+ * Notification is fired immediately.
  */
-import { LocalNotifications } from "@capacitor/local-notifications";
-import { isNative } from "./native";
 
-const CHANNEL_ID = "default_notifications";
-let channelReady = false;
+export const WASH_NOTIF_ID = 1001;
+export const BAG_RETURN_NOTIF_ID = 1002;
 
-/** Create the Android notification channel (idempotent, foreground only). */
-export async function ensureNotificationChannel(): Promise<void> {
-  if (channelReady || !isNative()) return;
-  try {
-    await LocalNotifications.createChannel({
-      id: CHANNEL_ID,
-      name: "App Notifications",
-      description: "Bag Au Pair reminders and alerts",
-      importance: 5,
-      visibility: 1,
-      vibration: true,
-      lights: true,
-    });
-    channelReady = true;
-    console.log("[notifications] channel ready: " + CHANNEL_ID);
-  } catch (e) {
-    console.warn("[notifications] createChannel failed", e);
-  }
-}
+const WASH_TARGET_KEY = "bagaupair-wash-target";
+const WASH_DAYS_KEY = "bagaupair-wash-days";
+const BAG_RETURN_TARGET_KEY = "bagaupair-bag-return-target";
+const BAG_RETURN_MINUTES_KEY = "bagaupair-bag-return-minutes";
 
-/** Request OS permission to display notifications (foreground only). */
+/** Request browser notification permission. Returns true if granted. */
 export async function requestNotificationPermission(): Promise<boolean> {
   try {
-    if (isNative()) {
-      await ensureNotificationChannel();
-      const res = await LocalNotifications.requestPermissions();
-      return res.display === "granted";
+    if (typeof Notification === "undefined") {
+      console.warn("[notifications] Notification API not available");
+      return false;
     }
-    if (typeof Notification !== "undefined") {
-      if (Notification.permission === "granted") return true;
-      if (Notification.permission === "denied") return false;
-      const p = await Notification.requestPermission();
-      return p === "granted";
-    }
+    if (Notification.permission === "granted") return true;
+    if (Notification.permission === "denied") return false;
+    const p = await Notification.requestPermission();
+    return p === "granted";
   } catch (e) {
     console.warn("[notifications] requestPermission failed", e);
+    return false;
   }
-  return false;
 }
 
-/**
- * Fire a notification immediately. Intended for foreground use:
- * manual "Test" buttons, in-app confirmations, web fallback.
- * Background geofence transitions are handled natively.
- */
+/** Fire a Web Notification immediately if permission is granted. */
 export async function sendLocalNotification(
   title: string,
   body: string,
   _options?: { urgent?: boolean }
 ): Promise<void> {
   try {
-    if (isNative()) {
-      await ensureNotificationChannel();
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: Math.floor(Math.random() * 2_000_000_000),
-            title,
-            body,
-            channelId: CHANNEL_ID,
-            smallIcon: "ic_stat_icon",
-          },
-        ],
-      });
-      return;
+    if (typeof Notification === "undefined") return;
+    if (Notification.permission !== "granted") {
+      const granted = await requestNotificationPermission();
+      if (!granted) {
+        console.warn("[notifications] permission not granted; skipping notification");
+        return;
+      }
     }
-    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-      new Notification(title, { body });
+    // Prefer service-worker notification for PWA reliability; fall back to
+    // the page-level Notification constructor.
+    if ("serviceWorker" in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        await reg.showNotification(title, { body, icon: "/pwa-icon-192.png", badge: "/pwa-icon-192.png" });
+        return;
+      } catch {
+        // fall through to page-level
+      }
     }
+    new Notification(title, { body });
   } catch (e) {
     console.warn("[notifications] sendLocalNotification failed", e);
   }
 }
 
-/**
- * Schedule a one-shot reminder `delayMinutes` in the future.
- * Triggered from foreground UI actions (e.g. Reminders page). The OS
- * scheduler delivers it later — this file does NOT track or recover
- * pending notifications across restarts.
- */
-export async function scheduleBagReminder(
-  delayMinutes: number,
-  message: string
-): Promise<void> {
-  try {
-    if (!isNative()) return;
-    await ensureNotificationChannel();
-    await LocalNotifications.schedule({
-      notifications: [
-        {
-          id: Math.floor(Math.random() * 2_000_000_000),
-          title: "🛍️ Bag Au Pair Reminder",
-          body: message,
-          channelId: CHANNEL_ID,
-          smallIcon: "ic_stat_icon",
-          schedule: { at: new Date(Date.now() + delayMinutes * 60_000) },
-        },
-      ],
-    });
-  } catch (e) {
-    console.warn("[notifications] scheduleBagReminder failed", e);
-  }
-}
-
-// ---------- Wash reminder (fixed ID 1001, OS-scheduled, persisted) ----------
-
-export const WASH_NOTIF_ID = 1001;
-const WASH_SCHEDULED_AT_KEY = "bagbuddy-wash-scheduled-at";
+// ---------- Wash reminder (target-date in localStorage) ----------
 
 export async function scheduleWashReminderAt(everyDays: number): Promise<void> {
   try {
-    const at = new Date(Date.now() + everyDays * 24 * 60 * 60 * 1000);
-    if (isNative()) {
-      await ensureNotificationChannel();
-      await LocalNotifications.cancel({ notifications: [{ id: WASH_NOTIF_ID }] });
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: WASH_NOTIF_ID,
-            title: "🧺 Time to Wash Your Bags",
-            body: `It's been ${everyDays} days — time to wash your canvas grocery bags!`,
-            channelId: CHANNEL_ID,
-            smallIcon: "ic_stat_icon",
-            schedule: { at },
-          },
-        ],
-      });
-    }
-    localStorage.setItem(WASH_SCHEDULED_AT_KEY, at.toISOString());
+    const target = Date.now() + everyDays * 24 * 60 * 60 * 1000;
+    localStorage.setItem(WASH_TARGET_KEY, String(target));
+    localStorage.setItem(WASH_DAYS_KEY, String(everyDays));
+    await sendLocalNotification(
+      "🧺 Wash reminder set",
+      `We will remind you in ${everyDays} days to wash your canvas bags.`
+    );
   } catch (e) {
     console.warn("[notifications] scheduleWashReminderAt failed", e);
   }
@@ -158,62 +83,65 @@ export async function scheduleWashReminderAt(everyDays: number): Promise<void> {
 
 export async function cancelWashReminder(): Promise<void> {
   try {
-    if (isNative()) {
-      await LocalNotifications.cancel({ notifications: [{ id: WASH_NOTIF_ID }] });
-    }
-    localStorage.removeItem(WASH_SCHEDULED_AT_KEY);
-  } catch (e) {
-    console.warn("[notifications] cancelWashReminder failed", e);
-  }
+    localStorage.removeItem(WASH_TARGET_KEY);
+    localStorage.removeItem(WASH_DAYS_KEY);
+  } catch {}
 }
 
-/** Reschedule wash reminder on app launch if it's missing or in the past. */
+/**
+ * On app open: if a wash target date has passed, fire the reminder and
+ * roll the target forward by the saved interval.
+ */
 export async function ensureWashReminderScheduled(everyDays: number): Promise<void> {
   try {
-    const raw = localStorage.getItem(WASH_SCHEDULED_AT_KEY);
+    const raw = localStorage.getItem(WASH_TARGET_KEY);
     if (!raw) {
-      await scheduleWashReminderAt(everyDays);
+      const target = Date.now() + everyDays * 24 * 60 * 60 * 1000;
+      localStorage.setItem(WASH_TARGET_KEY, String(target));
+      localStorage.setItem(WASH_DAYS_KEY, String(everyDays));
       return;
     }
-    const at = new Date(raw);
-    if (isNaN(at.getTime()) || at.getTime() <= Date.now()) {
-      await scheduleWashReminderAt(everyDays);
+    const target = parseInt(raw, 10);
+    if (!Number.isFinite(target)) return;
+    if (target <= Date.now()) {
+      await sendLocalNotification(
+        "🧺 Time to wash your bags",
+        `It's been ${everyDays} days — time to wash your canvas grocery bags!`
+      );
+      const next = Date.now() + everyDays * 24 * 60 * 60 * 1000;
+      localStorage.setItem(WASH_TARGET_KEY, String(next));
+      localStorage.setItem(WASH_DAYS_KEY, String(everyDays));
     }
   } catch (e) {
     console.warn("[notifications] ensureWashReminderScheduled failed", e);
   }
 }
 
-// ---------- Bag-return reminder (fixed ID 1002, OS-scheduled, persisted) ----------
+export function getWashReminderTarget(): number | null {
+  try {
+    const raw = localStorage.getItem(WASH_TARGET_KEY);
+    if (!raw) return null;
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return null;
+  }
+}
 
-export const BAG_RETURN_NOTIF_ID = 1002;
-const BAG_RETURN_KEY = "bagbuddy-bag-return-scheduled-at";
+// ---------- Bag-return reminder (target-time in localStorage) ----------
 
 export async function scheduleBagReturnReminder(
   delayMinutes: number,
-  opts: { daily?: boolean } = {}
+  _opts: { daily?: boolean } = {}
 ): Promise<void> {
   try {
-    const at = new Date(Date.now() + delayMinutes * 60_000);
-    if (isNative()) {
-      await ensureNotificationChannel();
-      await LocalNotifications.cancel({ notifications: [{ id: BAG_RETURN_NOTIF_ID }] });
-      await LocalNotifications.schedule({
-        notifications: [
-          {
-            id: BAG_RETURN_NOTIF_ID,
-            title: "🚗 Bag Au Pair",
-            body: "Time to put your bags back in the car",
-            channelId: CHANNEL_ID,
-            smallIcon: "ic_stat_icon",
-            schedule: opts.daily
-              ? { at, repeats: true, every: "day" }
-              : { at },
-          },
-        ],
-      });
-    }
-    localStorage.setItem(BAG_RETURN_KEY, at.toISOString());
+    const target = Date.now() + delayMinutes * 60_000;
+    localStorage.setItem(BAG_RETURN_TARGET_KEY, String(target));
+    localStorage.setItem(BAG_RETURN_MINUTES_KEY, String(delayMinutes));
+    await sendLocalNotification(
+      "🚗 Bag-return reminder set",
+      `We will remind you in ${delayMinutes} minutes to put your bags back in the car.`
+    );
   } catch (e) {
     console.warn("[notifications] scheduleBagReturnReminder failed", e);
   }
@@ -221,12 +149,50 @@ export async function scheduleBagReturnReminder(
 
 export async function cancelBagReturnReminder(): Promise<void> {
   try {
-    if (isNative()) {
-      await LocalNotifications.cancel({ notifications: [{ id: BAG_RETURN_NOTIF_ID }] });
+    localStorage.removeItem(BAG_RETURN_TARGET_KEY);
+    localStorage.removeItem(BAG_RETURN_MINUTES_KEY);
+  } catch {}
+}
+
+/** On app open: fire bag-return reminder if target time has passed. */
+export async function ensureBagReturnFired(): Promise<void> {
+  try {
+    const raw = localStorage.getItem(BAG_RETURN_TARGET_KEY);
+    if (!raw) return;
+    const target = parseInt(raw, 10);
+    if (!Number.isFinite(target)) return;
+    if (target <= Date.now()) {
+      await sendLocalNotification(
+        "🚗 Put your bags back!",
+        "Time to put your reusable bags back in the car."
+      );
+      localStorage.removeItem(BAG_RETURN_TARGET_KEY);
+      localStorage.removeItem(BAG_RETURN_MINUTES_KEY);
     }
-    localStorage.removeItem(BAG_RETURN_KEY);
   } catch (e) {
-    console.warn("[notifications] cancelBagReturnReminder failed", e);
+    console.warn("[notifications] ensureBagReturnFired failed", e);
   }
 }
 
+export function getBagReturnTarget(): number | null {
+  try {
+    const raw = localStorage.getItem(BAG_RETURN_TARGET_KEY);
+    if (!raw) return null;
+    const n = parseInt(raw, 10);
+    return Number.isFinite(n) ? n : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Legacy helper kept for callers; fires immediately via Web Notification. */
+export async function scheduleBagReminder(
+  _delayMinutes: number,
+  message: string
+): Promise<void> {
+  await sendLocalNotification("🛍️ Bag Au Pair Reminder", message);
+}
+
+export async function ensureNotificationChannel(): Promise<void> {
+  // No-op in PWA. Kept for backwards compatibility.
+}

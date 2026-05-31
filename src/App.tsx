@@ -15,15 +15,14 @@ import Donate from "./pages/Donate.tsx";
 import Install from "./pages/Install.tsx";
 import NotFound from "./pages/NotFound.tsx";
 import { runOnOpenProximityCheck } from "@/lib/on-open-proximity";
-import { ensureWashReminderScheduled } from "@/lib/notifications";
+import { ensureWashReminderScheduled, ensureBagReturnFired } from "@/lib/notifications";
 import { loadReminderSettings } from "@/lib/reminder-persistence";
 
 const queryClient = new QueryClient();
 
 const App = () => {
-  // Run once per app open: check proximity to enabled stores and reschedule
-  // the wash reminder if missing. Background geofence events are handled by
-  // Radar's native SDK separately (see main.tsx).
+  // Run once per app open (PWA): check proximity to enabled stores, fire any
+  // overdue wash / bag-return reminders. No background services.
   useEffect(() => {
     runOnOpenProximityCheck().catch((e) =>
       console.warn("[app] on-open proximity check failed", e)
@@ -32,6 +31,9 @@ const App = () => {
     if (settings.washReminder.enabled) {
       const days = parseInt(settings.washReminder.timing, 10) || 14;
       ensureWashReminderScheduled(days).catch(() => {});
+    }
+    if (settings.bagOut.enabled) {
+      ensureBagReturnFired().catch(() => {});
     }
   }, []);
 
