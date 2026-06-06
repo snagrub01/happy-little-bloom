@@ -1,0 +1,104 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary-glow: var(--primary-glow);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-amber-soft: var(--amber-soft);
+  --color-amber-soft-foreground: var(--amber-soft-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+}
+
+:root {
+  --radius: 1rem;
+
+  /* Off-white app background like reference */
+  --background: oklch(0.985 0.005 110);
+  --foreground: oklch(0.18 0.02 160);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 160);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 160);
+
+  /* Eco green primary */
+  --primary: oklch(0.62 0.17 145);
+  --primary-foreground: oklch(0.99 0 0);
+  --primary-glow: oklch(0.72 0.18 142);
+
+  --secondary: oklch(0.96 0.01 150);
+  --secondary-foreground: oklch(0.22 0.04 160);
+
+  --muted: oklch(0.96 0.008 150);
+  --muted-foreground: oklch(0.5 0.02 160);
+
+  --accent: oklch(0.95 0.02 150);
+  --accent-foreground: oklch(0.25 0.05 160);
+
+  /* Warm amber for shopping/eco-tip accents */
+  --amber-soft: oklch(0.78 0.14 75);
+  --amber-soft-foreground: oklch(0.25 0.04 70);
+
+  --destructive: oklch(0.6 0.22 27);
+  --destructive-foreground: oklch(0.99 0 0);
+
+  --border: oklch(0.92 0.01 150);
+  --input: oklch(0.92 0.01 150);
+  --ring: oklch(0.62 0.17 145);
+
+  /* Signature gradient */
+  --gradient-hero: linear-gradient(135deg, oklch(0.62 0.17 145), oklch(0.72 0.18 142));
+  --shadow-card: 0 1px 2px oklch(0.5 0.05 150 / 0.06), 0 4px 16px oklch(0.5 0.05 150 / 0.06);
+  --shadow-hero: 0 10px 30px -8px oklch(0.55 0.18 145 / 0.35);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html, body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  }
+}
+
+@layer utilities {
+  .bg-gradient-hero { background-image: var(--gradient-hero); }
+  .shadow-card { box-shadow: var(--shadow-card); }
+  .shadow-hero { box-shadow: var(--shadow-hero); }
+  .safe-bottom { padding-bottom: env(safe-area-inset-bottom); }
+}
