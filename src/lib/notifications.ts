@@ -7,12 +7,40 @@
 
 let swRegistrationPromise: Promise<ServiceWorkerRegistration | null> | null = null;
 
+export type NotificationSupportState = "supported" | "preview" | "install-required" | "unsupported";
+
 export function getCurrentNotificationPermission(): NotificationPermission {
   if (typeof window === "undefined" || !("Notification" in window)) {
     return "default";
   }
 
   return Notification.permission;
+}
+
+export function getNotificationSupportState(): NotificationSupportState {
+  if (typeof window === "undefined") return "unsupported";
+
+  const hostname = window.location.hostname;
+  const inLovablePreview =
+    window.self !== window.top ||
+    hostname === "lovableproject.com" ||
+    hostname.endsWith(".lovableproject.com") ||
+    hostname === "lovable.app" ||
+    hostname.startsWith("id-preview--") ||
+    hostname.startsWith("preview--");
+
+  if (inLovablePreview) return "preview";
+
+  if (!("Notification" in window)) return "unsupported";
+
+  const isIOS = /iPad|iPhone|iPod/.test(window.navigator.userAgent);
+  const isStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+  if (isIOS && !isStandalone) {
+    return "install-required";
+  }
+
+  return "supported";
 }
 
 function getSwRegistration(): Promise<ServiceWorkerRegistration | null> {
