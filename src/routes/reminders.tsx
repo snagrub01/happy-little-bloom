@@ -125,6 +125,28 @@ function RemindersPage() {
         )}
       </section>
 
+      {/* Test button — pinned near the top so it's reachable without scrolling */}
+      <button
+        onClick={async () => {
+          const p = await ensureNotificationPermission();
+          setPerm(p);
+          if (p !== "granted") {
+            alert(
+              p === "denied"
+                ? "Notifications are blocked. Enable them in your browser settings for this site."
+                : "Please allow notifications to test the reminder.",
+            );
+            return;
+          }
+          fireBagSequence("Test Store", settingsRef.current);
+        }}
+        className="mt-3 w-full rounded-xl bg-primary px-3 py-3 text-sm font-semibold text-primary-foreground shadow-card"
+      >
+        🔔 Test reminder now
+      </button>
+
+
+
       {/* Secondary reminder delay */}
       <section className="mt-4 rounded-2xl border border-border bg-card p-4 shadow-card">
         <div className="flex items-center justify-between">
@@ -178,25 +200,6 @@ function RemindersPage() {
         <div className="mt-0.5 flex justify-between text-[10px] text-muted-foreground"><span>1 wk</span><span>4 wks</span></div>
       </section>
 
-      {/* Test button */}
-      <button
-        onClick={async () => {
-          const p = await ensureNotificationPermission();
-          setPerm(p);
-          if (p !== "granted") {
-            alert(
-              p === "denied"
-                ? "Notifications are blocked. Enable them in your browser settings for this site."
-                : "Please allow notifications to test the reminder.",
-            );
-            return;
-          }
-          fireBagSequence("Test Store", settingsRef.current);
-        }}
-        className="mt-5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-medium"
-      >
-        Test reminder now
-      </button>
 
       <p className="mt-5 rounded-xl bg-secondary px-3 py-2.5 text-xs text-secondary-foreground">
         ℹ️ Heads-up: location-triggered reminders only work while this app is open in your
