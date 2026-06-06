@@ -25,12 +25,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (typeof window === "undefined" || !("Notification" in window)) return;
     if (Notification.permission !== "default") return;
-    // Auto-request notification permission when launched as an installed app.
-    const isStandalone =
-      window.matchMedia?.("(display-mode: standalone)").matches ||
-      // iOS Safari
-      (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-    if (!isStandalone) return;
+    // Auto-request notification permission on first visit so users don't have
+    // to dig through menus. Browsers only show the OS prompt once per origin.
     void ensureNotificationPermission();
   }, []);
 
