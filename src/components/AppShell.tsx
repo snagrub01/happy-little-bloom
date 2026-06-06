@@ -1,7 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, MapPin, ListChecks, Bell, Heart, Download } from "lucide-react";
 import type { ComponentType, ReactNode } from "react";
-import logo from "@/assets/leaf-logo.png";
+import logo from "@/assets/bag-logo.png";
 
 interface NavItem {
   to: string;
