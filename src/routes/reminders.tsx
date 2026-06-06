@@ -3,7 +3,13 @@ import { useEffect, useRef, useState } from "react";
 import { Bell, BellOff } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useLocalState, K } from "@/lib/storage";
-import { DEFAULT_REMINDERS, type HomeLocation, type RemindersSettings, type SavedStore } from "@/lib/types";
+import {
+  DEFAULT_REMINDERS,
+  normalizeStoreTriggerFeet,
+  type HomeLocation,
+  type RemindersSettings,
+  type SavedStore,
+} from "@/lib/types";
 import { ensureNotificationPermission, notify, scheduleReminder } from "@/lib/notifications";
 import { feetBetween, watchPosition } from "@/lib/geo";
 
@@ -32,12 +38,11 @@ function RemindersPage() {
   const settingsRef = useRef(settings);
   settingsRef.current = settings;
 
-  // Ask for permission on mount if reminders enabled
   useEffect(() => {
-    if (settings.enabled && perm === "default") {
-      ensureNotificationPermission().then(setPerm);
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setPerm(Notification.permission);
     }
-  }, [settings.enabled, perm]);
+  }, []);
 
   // Watch position whenever enabled & we have stores + permission
   useEffect(() => {
@@ -53,7 +58,7 @@ function RemindersPage() {
         const current = storesRef.current;
         for (const s of current) {
           const dist = feetBetween(here, s);
-          const inside = dist <= s.triggerFeet;
+          const inside = dist <= normalizeStoreTriggerFeet(s.triggerFeet);
           const cool = !s.lastFiredAt || now - s.lastFiredAt > COOLDOWN_MS;
           if (inside && cool) {
             fireBagSequence(s.name, settingsRef.current);

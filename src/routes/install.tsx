@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Download, Share, Plus, Smartphone } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { ensureNotificationPermission } from "@/lib/notifications";
 
 export const Route = createFileRoute("/install")({
   head: () => ({
@@ -42,7 +43,10 @@ function InstallPage() {
   async function install() {
     if (!deferred) return;
     await deferred.prompt();
-    await deferred.userChoice;
+    const choice = await deferred.userChoice;
+    if (choice.outcome === "accepted") {
+      await ensureNotificationPermission();
+    }
     setDeferred(null);
   }
 

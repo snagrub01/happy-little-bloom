@@ -16,6 +16,18 @@ export interface SavedStore {
   lastFiredAt?: number;
 }
 
+export const STORE_TRIGGER_PRESETS = [
+  { label: "Arriving", feet: 25 },
+  { label: "500 ft", feet: 500 },
+  { label: "0.25 mi", feet: 1320 },
+] as const;
+
+export function normalizeStoreTriggerFeet(feet: number): number {
+  return STORE_TRIGGER_PRESETS.reduce<number>((closest, preset) => {
+    return Math.abs(preset.feet - feet) < Math.abs(closest - feet) ? preset.feet : closest;
+  }, STORE_TRIGGER_PRESETS[1].feet);
+}
+
 export interface ShoppingItem {
   id: string;
   text: string;
