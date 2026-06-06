@@ -25,7 +25,9 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen flex flex-col bg-background text-foreground">
       <header className="mx-auto w-full max-w-md px-5 pt-6">
         <div className="flex items-center gap-2 text-primary">
-          <img src={logo} alt="" width={28} height={28} className="h-7 w-7" />
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
+            <img src={logo} alt="" width={24} height={24} className="h-6 w-6" />
+          </div>
           <span className="text-sm font-semibold tracking-wider uppercase">
             Bag Au Pair
           </span>

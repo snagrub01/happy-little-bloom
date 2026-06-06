@@ -24,9 +24,7 @@ function RemindersPage() {
   const [settings, setSettings] = useLocalState<RemindersSettings>(K.reminders, DEFAULT_REMINDERS);
   const [home] = useLocalState<HomeLocation | null>(K.home, null);
   const [stores, setStores] = useLocalState<SavedStore[]>(K.stores, []);
-  const [perm, setPerm] = useState<NotificationPermission>(
-    typeof Notification !== "undefined" ? Notification.permission : "default",
-  );
+  const [perm, setPerm] = useState<NotificationPermission>("default");
   const [tracking, setTracking] = useState(false);
 
   const storesRef = useRef(stores);
