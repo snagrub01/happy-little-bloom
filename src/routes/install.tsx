@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { Download, Share, Plus, Smartphone } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
+import { ensureNotificationPermission } from "@/lib/notifications";
 
 export const Route = createFileRoute("/install")({
   head: () => ({
@@ -42,7 +43,10 @@ function InstallPage() {
   async function install() {
     if (!deferred) return;
     await deferred.prompt();
-    await deferred.userChoice;
+    const choice = await deferred.userChoice;
+    if (choice.outcome === "accepted") {
+      await ensureNotificationPermission();
+    }
     setDeferred(null);
   }
 
@@ -64,6 +68,10 @@ function InstallPage() {
         >
           <Download className="h-5 w-5" /> Install Bag Au Pair
         </button>
+      ) : installed ? (
+        <div className="mt-6 rounded-2xl border border-primary/30 bg-primary/10 p-4 text-primary">
+          ✓ Installed! Open Bag Au Pair from your home screen.
+        </div>
       ) : isIOS ? (
         <div className="mt-6 space-y-3 rounded-2xl border border-border bg-card p-4 shadow-card">
           <div className="flex items-center gap-2 font-semibold">

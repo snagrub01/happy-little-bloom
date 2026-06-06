@@ -1,8 +1,7 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, MapPin, ListChecks, Bell, Heart, Download } from "lucide-react";
-import { useEffect, type ComponentType, type ReactNode } from "react";
+import { type ComponentType, type ReactNode } from "react";
 import logo from "@/assets/bag-logo.png";
-import { ensureNotificationPermission } from "@/lib/notifications";
 
 interface NavItem {
   to: string;
@@ -21,16 +20,6 @@ const NAV: NavItem[] = [
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !("Notification" in window)) return;
-    if (Notification.permission !== "default") return;
-    // Auto-request notification permission on first visit so users don't have
-    // to dig through menus. Browsers only show the OS prompt once per origin.
-    void ensureNotificationPermission();
-  }, []);
-
-
 
   return (
     <div className="min-h-screen flex flex-col bg-background text-foreground">
