@@ -180,7 +180,19 @@ function RemindersPage() {
 
       {/* Test button */}
       <button
-        onClick={() => fireBagSequence("Test Store", settingsRef.current)}
+        onClick={async () => {
+          const p = await ensureNotificationPermission();
+          setPerm(p);
+          if (p !== "granted") {
+            alert(
+              p === "denied"
+                ? "Notifications are blocked. Enable them in your browser settings for this site."
+                : "Please allow notifications to test the reminder.",
+            );
+            return;
+          }
+          fireBagSequence("Test Store", settingsRef.current);
+        }}
         className="mt-5 w-full rounded-xl border border-border bg-card px-3 py-2.5 text-sm font-medium"
       >
         Test reminder now
