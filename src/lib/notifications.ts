@@ -1,143 +1,149 @@
-// Notification helpers. Works while the app is OPEN in the browser tab.
-// Background/locked-screen notifications require a native build (Capacitor).
-//
-// On mobile (Android Chrome), `new Notification(...)` throws "Illegal constructor".
-// We must use ServiceWorkerRegistration.showNotification() instead. We register a
-// minimal notification-only service worker (no caching) to make this work everywhere.
+/**
+ * Foreground-only notification helpers.
+ *
+ * Background geofence notifications are fired natively by
+ * GeofenceReceiver.java — not from this file.
+ *
+ * This module handles:
+ *   - Android notification channel setup (so manual + native-fired
+ *     notifications share a single high-importance channel)
+ *   - Foreground permission requests (called from UI / app mount)
+ *   - Manual / test notifications triggered while the app is open
+ *     (Reminders page "Test" button, in-foreground confirmations)
+ *
+ * It does NOT:
+ *   - subscribe to geofence callbacks
+ *   - schedule recovery / reconciliation on app restart
+ *   - assume it can run from a background JS callback
+ */
+import { LocalNotifications } from "@capacitor/local-notifications";
+import { isNative } from "./native";
 
-let swRegistrationPromise: Promise<ServiceWorkerRegistration | null> | null = null;
+const CHANNEL_ID = "default_notifications";
+let channelReady = false;
 
-export type NotificationSupportState = "supported" | "preview" | "install-required" | "unsupported";
-
-export function getCurrentNotificationPermission(): NotificationPermission {
-  if (typeof window === "undefined" || !("Notification" in window)) {
-    return "default";
-  }
-
-  return Notification.permission;
-}
-
-export function getNotificationSupportState(): NotificationSupportState {
-  if (typeof window === "undefined") return "unsupported";
-
-  const hostname = window.location.hostname;
-  const inLovablePreview =
-    window.self !== window.top ||
-    hostname === "lovableproject.com" ||
-    hostname.endsWith(".lovableproject.com") ||
-    hostname === "lovable.app" ||
-    hostname.startsWith("id-preview--") ||
-    hostname.startsWith("preview--");
-
-  if (inLovablePreview) return "preview";
-
-  if (!("Notification" in window)) return "unsupported";
-
-  const isIOS = /iPad|iPhone|iPod/.test(window.navigator.userAgent);
-  const isStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
-
-  if (isIOS && !isStandalone) {
-    return "install-required";
-  }
-
-  return "supported";
-}
-
-function getSwRegistration(): Promise<ServiceWorkerRegistration | null> {
-  if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
-    return Promise.resolve(null);
-  }
-  if (!swRegistrationPromise) {
-    swRegistrationPromise = navigator.serviceWorker
-      .register("/sw.js")
-      .then(async () => navigator.serviceWorker.ready)
-      .catch(() => null);
-  }
-  return swRegistrationPromise;
-}
-
-export function requestNotificationPermissionFromUserGesture(): Promise<NotificationPermission> {
-  const currentPermission = getCurrentNotificationPermission();
-
-  if (currentPermission !== "default") {
-    if (currentPermission === "granted") {
-      void getSwRegistration();
-    }
-    return Promise.resolve(currentPermission);
-  }
-
+/** Create the Android notification channel (idempotent, foreground only). */
+export async function ensureNotificationChannel(): Promise<void> {
+  if (channelReady || !isNative()) return;
   try {
-    const request = Notification.requestPermission();
-    return Promise.resolve(request)
-      .then((permission) => {
-        const resolvedPermission = permission === "default"
-          ? getCurrentNotificationPermission()
-          : permission;
-
-        if (resolvedPermission === "granted") {
-          void getSwRegistration();
-        }
-        return resolvedPermission;
-      })
-      .catch(() => getCurrentNotificationPermission());
-  } catch {
-    return Promise.resolve(getCurrentNotificationPermission());
+    await LocalNotifications.createChannel({
+      id: CHANNEL_ID,
+      name: "App Notifications",
+      description: "Bag Au Pair reminders and alerts",
+      importance: 5,
+      visibility: 1,
+      vibration: true,
+      lights: true,
+    });
+    channelReady = true;
+    console.log("[notifications] channel ready: " + CHANNEL_ID);
+  } catch (e) {
+    console.warn("[notifications] createChannel failed", e);
   }
 }
 
-export function prepareNotifications(): void {
-  if (getCurrentNotificationPermission() === "granted") {
-    void getSwRegistration();
-  }
-}
-
-export async function ensureNotificationPermission(): Promise<NotificationPermission> {
-  const currentPermission = getCurrentNotificationPermission();
-  if (currentPermission === "granted") {
-    await getSwRegistration();
-    return currentPermission;
-  }
-
-  const permission = await requestNotificationPermissionFromUserGesture();
-  if (permission === "granted") {
-    await getSwRegistration();
-  }
-  return permission;
-}
-
-export async function notify(title: string, body: string, tag?: string): Promise<boolean> {
-  if (typeof window === "undefined" || !("Notification" in window)) return false;
-  if (getCurrentNotificationPermission() !== "granted") return false;
-  const options: NotificationOptions = {
-    body,
-    tag,
-    badge: "/icon-192.png",
-    icon: "/icon-192.png",
-  };
-  const reg = await getSwRegistration();
-  if (reg) {
-    try {
-      await reg.showNotification(title, options);
-      return true;
-    } catch {
-      /* fall through to constructor */
-    }
-  }
+/** Request OS permission to display notifications (foreground only). */
+export async function requestNotificationPermission(): Promise<boolean> {
   try {
-    new Notification(title, options);
-    return true;
-  } catch {
-    /* ignore — mobile browsers throw here; SW path above is the supported route */
-    return false;
+    if (isNative()) {
+      await ensureNotificationChannel();
+      const res = await LocalNotifications.requestPermissions();
+      return res.display === "granted";
+    }
+    if (typeof Notification !== "undefined") {
+      if (Notification.permission === "granted") return true;
+      if (Notification.permission === "denied") return false;
+      const p = await Notification.requestPermission();
+      return p === "granted";
+    }
+  } catch (e) {
+    console.warn("[notifications] requestPermission failed", e);
+  }
+  return false;
+}
+
+/**
+ * Fire a notification immediately. Intended for foreground use:
+ * manual "Test" buttons, in-app confirmations, web fallback.
+ * Background geofence transitions are handled natively.
+ */
+export async function sendLocalNotification(
+  title: string,
+  body: string,
+  _options?: { urgent?: boolean }
+): Promise<void> {
+  try {
+    if (isNative()) {
+      await ensureNotificationChannel();
+      await LocalNotifications.schedule({
+        notifications: [
+          {
+            id: Math.floor(Math.random() * 2_000_000_000),
+            title,
+            body,
+            channelId: CHANNEL_ID,
+            smallIcon: "ic_stat_icon",
+          },
+        ],
+      });
+      return;
+    }
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      new Notification(title, { body });
+    }
+  } catch (e) {
+    console.warn("[notifications] sendLocalNotification failed", e);
   }
 }
 
-// Schedule timed reminders relative to "now"
-export function scheduleReminder(delayMs: number, title: string, body: string, tag: string) {
-  if (delayMs <= 0) {
-    void notify(title, body, tag);
-    return () => {};
+/**
+ * Schedule a one-shot reminder `delayMinutes` in the future.
+ * Triggered from foreground UI actions (e.g. Reminders page). The OS
+ * scheduler delivers it later — this file does NOT track or recover
+ * pending notifications across restarts.
+ */
+export async function scheduleBagReminder(
+  delayMinutes: number,
+  message: string
+): Promise<void> {
+  try {
+    if (!isNative()) return;
+    await ensureNotificationChannel();
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: Math.floor(Math.random() * 2_000_000_000),
+          title: "🛍️ Bag Au Pair Reminder",
+          body: message,
+          channelId: CHANNEL_ID,
+          smallIcon: "ic_stat_icon",
+          schedule: { at: new Date(Date.now() + delayMinutes * 60_000) },
+        },
+      ],
+    });
+  } catch (e) {
+    console.warn("[notifications] scheduleBagReminder failed", e);
   }
-  const id = window.setTimeout(() => { void notify(title, body, tag); }, delayMs);
-  return () => window.clearTimeout(id);
+}
+
+/** Schedule a single wash reminder occurrence (foreground-triggered). */
+export async function scheduleWashReminder(everyDays: number = 14): Promise<void> {
+  try {
+    if (!isNative()) return;
+    await ensureNotificationChannel();
+    await LocalNotifications.schedule({
+      notifications: [
+        {
+          id: 777001,
+          title: "🧺 Time to Wash Your Bags",
+          body: `It's been ${everyDays} days — time to wash your canvas grocery bags!`,
+          channelId: CHANNEL_ID,
+          smallIcon: "ic_stat_icon",
+          schedule: { at: new Date(Date.now() + everyDays * 24 * 60 * 60 * 1000) },
+        },
+      ],
+    });
+  } catch (e) {
+    console.warn("[notifications] scheduleWashReminder failed", e);
+  }
 }
