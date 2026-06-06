@@ -63,8 +63,6 @@ export async function notify(title: string, body: string, tag?: string) {
     tag,
     badge: "/icon-192.png",
     icon: "/icon-192.png",
-    renotify: Boolean(tag),
-    vibrate: [200, 100, 200],
   };
   const reg = await getSwRegistration();
   if (reg) {
