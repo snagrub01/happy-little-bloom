@@ -73,7 +73,7 @@ function StoresPage() {
 
   function addStore(p: { id: string; name: string; address: string; lat: number; lng: number }) {
     if (stores.find((s) => s.id === p.id)) return;
-    setStores([...stores, { ...p, triggerFeet: 500 }]);
+    setStores([...stores, { ...p, triggerFeet: 300 }]);
   }
 
   function removeStore(id: string) {
@@ -223,13 +223,13 @@ function StoresPage() {
                   <span className="font-semibold text-primary">{formatFeet(s.triggerFeet)}</span>
                 </div>
                 <input
-                  type="range" min={0} max={5000} step={50}
+                  type="range" min={25} max={1800} step={25}
                   value={s.triggerFeet}
                   onChange={(e) => updateTrigger(s.id, Number(e.target.value))}
                   className="mt-1 w-full accent-[var(--primary)]"
                 />
                 <div className="mt-0.5 flex justify-between text-[10px] text-muted-foreground">
-                  <span>0 ft</span><span>5000 ft</span>
+                  <span>25 ft</span><span>1800 ft</span>
                 </div>
               </li>
             ))}
