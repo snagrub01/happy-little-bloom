@@ -47,6 +47,13 @@ export function requestNotificationPermissionFromUserGesture(): Promise<Notifica
   }
 }
 
+export function prepareNotifications(): void {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    void getSwRegistration();
+  }
+}
+
 export async function ensureNotificationPermission(): Promise<NotificationPermission> {
   const permission = await requestNotificationPermissionFromUserGesture();
   if (permission === "granted") {

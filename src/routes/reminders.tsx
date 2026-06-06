@@ -10,7 +10,13 @@ import {
   type RemindersSettings,
   type SavedStore,
 } from "@/lib/types";
-import { ensureNotificationPermission, notify, scheduleReminder } from "@/lib/notifications";
+import {
+  ensureNotificationPermission,
+  notify,
+  prepareNotifications,
+  requestNotificationPermissionFromUserGesture,
+  scheduleReminder,
+} from "@/lib/notifications";
 import { feetBetween, watchPosition } from "@/lib/geo";
 
 export const Route = createFileRoute("/reminders")({
@@ -41,6 +47,7 @@ function RemindersPage() {
   useEffect(() => {
     if (typeof window !== "undefined" && "Notification" in window) {
       setPerm(Notification.permission);
+      prepareNotifications();
     }
   }, []);
 
@@ -131,7 +138,7 @@ function RemindersPage() {
       {/* Test button — pinned near the top so it's reachable without scrolling */}
       <button
         onClick={async () => {
-          const p = await ensureNotificationPermission();
+          const p = await requestNotificationPermissionFromUserGesture();
           setPerm(p);
           if (p !== "granted") {
             alert(
@@ -141,7 +148,8 @@ function RemindersPage() {
             );
             return;
           }
-          fireBagSequence("Test Store", settingsRef.current);
+          await ensureNotificationPermission();
+          await fireBagSequence("Test Store", settingsRef.current);
         }}
         className="mt-3 w-full rounded-xl bg-primary px-3 py-3 text-sm font-semibold text-primary-foreground shadow-card"
       >
@@ -213,9 +221,9 @@ function RemindersPage() {
   );
 }
 
-function fireBagSequence(storeName: string, s: RemindersSettings) {
+async function fireBagSequence(storeName: string, s: RemindersSettings) {
   // Primary
-  notify("Don't forget your bags! 🛍️", `You're near ${storeName}.`, "bap-bag-1");
+  await notify("Don't forget your bags! 🛍️", `You're near ${storeName}.`, "bap-bag-1");
   // Secondary
   scheduleReminder(
     s.secondaryDelayMin * 60_000,
