@@ -14,41 +14,63 @@ function getSwRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (!swRegistrationPromise) {
     swRegistrationPromise = navigator.serviceWorker
       .register("/sw.js")
-      .then(async (reg) => {
-        // Wait until the SW is active so showNotification() works on first call.
-        if (reg.active) return reg;
-        await new Promise<void>((resolve) => {
-          const sw = reg.installing || reg.waiting;
-          if (!sw) return resolve();
-          sw.addEventListener("statechange", () => {
-            if (sw.state === "activated") resolve();
-          });
-        });
-        return reg;
-      })
+      .then(async () => navigator.serviceWorker.ready)
       .catch(() => null);
   }
   return swRegistrationPromise;
 }
 
-export async function ensureNotificationPermission(): Promise<NotificationPermission> {
-  if (typeof window === "undefined" || !("Notification" in window)) return "denied";
-  // Kick off SW registration early so it's ready when we fire.
-  void getSwRegistration();
-  if (Notification.permission === "granted" || Notification.permission === "denied") {
-    return Notification.permission;
+export function requestNotificationPermissionFromUserGesture(): Promise<NotificationPermission> {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return Promise.resolve("denied");
   }
+
+  if (Notification.permission !== "default") {
+    if (Notification.permission === "granted") {
+      void getSwRegistration();
+    }
+    return Promise.resolve(Notification.permission);
+  }
+
   try {
-    return await Notification.requestPermission();
+    const request = Notification.requestPermission();
+    return Promise.resolve(request)
+      .then((permission) => {
+        if (permission === "granted") {
+          void getSwRegistration();
+        }
+        return permission;
+      })
+      .catch(() => "denied");
   } catch {
-    return "denied";
+    return Promise.resolve("denied");
   }
+}
+
+export function prepareNotifications(): void {
+  if (typeof window === "undefined" || !("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    void getSwRegistration();
+  }
+}
+
+export async function ensureNotificationPermission(): Promise<NotificationPermission> {
+  const permission = await requestNotificationPermissionFromUserGesture();
+  if (permission === "granted") {
+    await getSwRegistration();
+  }
+  return permission;
 }
 
 export async function notify(title: string, body: string, tag?: string) {
   if (typeof window === "undefined" || !("Notification" in window)) return;
   if (Notification.permission !== "granted") return;
-  const options: NotificationOptions = { body, tag, icon: "/icon-192.png", badge: "/icon-192.png" };
+  const options: NotificationOptions = {
+    body,
+    tag,
+    badge: "/icon-192.png",
+    icon: "/icon-192.png",
+  };
   const reg = await getSwRegistration();
   if (reg) {
     try {
