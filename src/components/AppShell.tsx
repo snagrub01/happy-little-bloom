@@ -1,7 +1,8 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { Home, MapPin, ListChecks, Bell, Heart, Download } from "lucide-react";
-import type { ComponentType, ReactNode } from "react";
+import { useEffect, type ComponentType, type ReactNode } from "react";
 import logo from "@/assets/bag-logo.png";
+import { ensureNotificationPermission } from "@/lib/notifications";
 
 interface NavItem {
   to: string;
