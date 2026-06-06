@@ -51,6 +51,12 @@ function InstallPage() {
     if (choice.outcome === "accepted") {
       await permissionPromise;
       await ensureNotificationPermission();
+      localStorage.setItem("bap.reminders", JSON.stringify({
+        enabled: true,
+        secondaryDelayMin: 2,
+        couponDelayMin: 6,
+        washWeeks: 2,
+      }));
     }
     setDeferred(null);
   }

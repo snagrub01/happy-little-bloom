@@ -12,6 +12,8 @@ import {
 } from "@/lib/types";
 import {
   ensureNotificationPermission,
+  getCurrentNotificationPermission,
+  getNotificationSupportState,
   notify,
   prepareNotifications,
   requestNotificationPermissionFromUserGesture,
@@ -37,6 +39,7 @@ function RemindersPage() {
   const [home] = useLocalState<HomeLocation | null>(K.home, null);
   const [stores, setStores] = useLocalState<SavedStore[]>(K.stores, []);
   const [perm, setPerm] = useState<NotificationPermission>("default");
+  const [supportState, setSupportState] = useState(getNotificationSupportState());
   const [tracking, setTracking] = useState(false);
 
   const storesRef = useRef(stores);
@@ -45,8 +48,9 @@ function RemindersPage() {
   settingsRef.current = settings;
 
   useEffect(() => {
+    setSupportState(getNotificationSupportState());
     if (typeof window !== "undefined" && "Notification" in window) {
-      setPerm(Notification.permission);
+      setPerm(getCurrentNotificationPermission());
       prepareNotifications();
     }
   }, []);
@@ -99,8 +103,19 @@ function RemindersPage() {
 
   async function toggleEnabled(next: boolean) {
     if (next) {
+      const support = getNotificationSupportState();
+      setSupportState(support);
+      if (support !== "supported") {
+        setSettings({ ...settings, enabled: false });
+        return;
+      }
+
       const p = await ensureNotificationPermission();
       setPerm(p);
+      if (p === "denied") {
+        setSettings({ ...settings, enabled: false });
+        return;
+      }
     }
     setSettings({ ...settings, enabled: next });
   }
@@ -128,9 +143,19 @@ function RemindersPage() {
           </div>
           <Switch checked={settings.enabled} onChange={toggleEnabled} />
         </div>
-        {perm === "denied" && settings.enabled && (
+        {perm === "denied" && settings.enabled && supportState === "supported" && (
           <p className="mt-3 text-xs text-destructive">
             Notifications are blocked. Enable them in your browser settings for this site.
+          </p>
+        )}
+        {supportState === "preview" && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Notification testing does not work inside the editor preview. Open the published app to test it.
+          </p>
+        )}
+        {supportState === "install-required" && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            On iPhone, notifications only work after you add Bag Au Pair to your Home Screen and open it from there.
           </p>
         )}
       </section>
@@ -138,18 +163,41 @@ function RemindersPage() {
       {/* Test button — pinned near the top so it's reachable without scrolling */}
       <button
         onClick={async () => {
+          const support = getNotificationSupportState();
+          setSupportState(support);
+          if (support === "preview") {
+            alert("Test notifications do not work inside the editor preview. Open the published app or installed app to test them.");
+            return;
+          }
+          if (support === "install-required") {
+            alert("On iPhone, notifications only work after adding the app to your Home Screen and opening it from there.");
+            return;
+          }
+          if (support === "unsupported") {
+            alert("This browser does not support app notifications.");
+            return;
+          }
+
           const p = await requestNotificationPermissionFromUserGesture();
           setPerm(p);
-          if (p !== "granted") {
+          if (p === "denied") {
             alert(
-              p === "denied"
-                ? "Notifications are blocked. Enable them in your browser settings for this site."
-                : "Please allow notifications to test the reminder.",
+              "Notifications are blocked. Enable them in your browser settings for this site.",
             );
             return;
           }
-          await ensureNotificationPermission();
-          await fireBagSequence("Test Store", settingsRef.current);
+
+          const ensured = await ensureNotificationPermission();
+          setPerm(ensured);
+          if (ensured !== "granted") {
+            alert("Tap the test button again after allowing notifications.");
+            return;
+          }
+
+          const sent = await fireBagSequence("Test Store", settingsRef.current);
+          if (!sent) {
+            alert("This browser did not deliver the test notification. Please try from the installed app on your phone.");
+          }
         }}
         className="mt-3 w-full rounded-xl bg-primary px-3 py-3 text-sm font-semibold text-primary-foreground shadow-card"
       >
@@ -223,21 +271,28 @@ function RemindersPage() {
 
 async function fireBagSequence(storeName: string, s: RemindersSettings) {
   // Primary
-  await notify("Don't forget your bags! 🛍️", `You're near ${storeName}.`, "bap-bag-1");
+  const uniqueSeed = `${storeName}-${Date.now()}`;
+  const primarySent = await notify(
+    "Don't forget your bags! 🛍️",
+    `You're near ${storeName}.`,
+    `bap-bag-1-${uniqueSeed}`,
+  );
   // Secondary
   scheduleReminder(
     s.secondaryDelayMin * 60_000,
     "Still don't forget your bags!",
     `Heading into ${storeName}?`,
-    "bap-bag-2",
+    `bap-bag-2-${uniqueSeed}`,
   );
   // Coupon
   scheduleReminder(
     s.couponDelayMin * 60_000,
     "Check your coupons 🎟️",
     `Any deals or coupons for ${storeName}?`,
-    "bap-coupon",
+    `bap-coupon-${uniqueSeed}`,
   );
+
+  return primarySent;
 }
 
 function statusText(

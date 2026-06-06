@@ -7,6 +7,42 @@
 
 let swRegistrationPromise: Promise<ServiceWorkerRegistration | null> | null = null;
 
+export type NotificationSupportState = "supported" | "preview" | "install-required" | "unsupported";
+
+export function getCurrentNotificationPermission(): NotificationPermission {
+  if (typeof window === "undefined" || !("Notification" in window)) {
+    return "default";
+  }
+
+  return Notification.permission;
+}
+
+export function getNotificationSupportState(): NotificationSupportState {
+  if (typeof window === "undefined") return "unsupported";
+
+  const hostname = window.location.hostname;
+  const inLovablePreview =
+    window.self !== window.top ||
+    hostname === "lovableproject.com" ||
+    hostname.endsWith(".lovableproject.com") ||
+    hostname === "lovable.app" ||
+    hostname.startsWith("id-preview--") ||
+    hostname.startsWith("preview--");
+
+  if (inLovablePreview) return "preview";
+
+  if (!("Notification" in window)) return "unsupported";
+
+  const isIOS = /iPad|iPhone|iPod/.test(window.navigator.userAgent);
+  const isStandalone = window.matchMedia?.("(display-mode: standalone)")?.matches || (window.navigator as Navigator & { standalone?: boolean }).standalone === true;
+
+  if (isIOS && !isStandalone) {
+    return "install-required";
+  }
+
+  return "supported";
+}
+
 function getSwRegistration(): Promise<ServiceWorkerRegistration | null> {
   if (typeof window === "undefined" || !("serviceWorker" in navigator)) {
     return Promise.resolve(null);
@@ -21,40 +57,47 @@ function getSwRegistration(): Promise<ServiceWorkerRegistration | null> {
 }
 
 export function requestNotificationPermissionFromUserGesture(): Promise<NotificationPermission> {
-  if (typeof window === "undefined" || !("Notification" in window)) {
-    return Promise.resolve("denied");
-  }
+  const currentPermission = getCurrentNotificationPermission();
 
-  if (Notification.permission !== "default") {
-    if (Notification.permission === "granted") {
+  if (currentPermission !== "default") {
+    if (currentPermission === "granted") {
       void getSwRegistration();
     }
-    return Promise.resolve(Notification.permission);
+    return Promise.resolve(currentPermission);
   }
 
   try {
     const request = Notification.requestPermission();
     return Promise.resolve(request)
       .then((permission) => {
-        if (permission === "granted") {
+        const resolvedPermission = permission === "default"
+          ? getCurrentNotificationPermission()
+          : permission;
+
+        if (resolvedPermission === "granted") {
           void getSwRegistration();
         }
-        return permission;
+        return resolvedPermission;
       })
-      .catch(() => "denied");
+      .catch(() => getCurrentNotificationPermission());
   } catch {
-    return Promise.resolve("denied");
+    return Promise.resolve(getCurrentNotificationPermission());
   }
 }
 
 export function prepareNotifications(): void {
-  if (typeof window === "undefined" || !("Notification" in window)) return;
-  if (Notification.permission === "granted") {
+  if (getCurrentNotificationPermission() === "granted") {
     void getSwRegistration();
   }
 }
 
 export async function ensureNotificationPermission(): Promise<NotificationPermission> {
+  const currentPermission = getCurrentNotificationPermission();
+  if (currentPermission === "granted") {
+    await getSwRegistration();
+    return currentPermission;
+  }
+
   const permission = await requestNotificationPermissionFromUserGesture();
   if (permission === "granted") {
     await getSwRegistration();
@@ -62,9 +105,9 @@ export async function ensureNotificationPermission(): Promise<NotificationPermis
   return permission;
 }
 
-export async function notify(title: string, body: string, tag?: string) {
-  if (typeof window === "undefined" || !("Notification" in window)) return;
-  if (Notification.permission !== "granted") return;
+export async function notify(title: string, body: string, tag?: string): Promise<boolean> {
+  if (typeof window === "undefined" || !("Notification" in window)) return false;
+  if (getCurrentNotificationPermission() !== "granted") return false;
   const options: NotificationOptions = {
     body,
     tag,
@@ -75,15 +118,17 @@ export async function notify(title: string, body: string, tag?: string) {
   if (reg) {
     try {
       await reg.showNotification(title, options);
-      return;
+      return true;
     } catch {
       /* fall through to constructor */
     }
   }
   try {
     new Notification(title, options);
+    return true;
   } catch {
     /* ignore — mobile browsers throw here; SW path above is the supported route */
+    return false;
   }
 }
 
