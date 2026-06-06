@@ -13,6 +13,7 @@ import {
 import {
   ensureNotificationPermission,
   getCurrentNotificationPermission,
+  getNotificationSupportState,
   notify,
   prepareNotifications,
   requestNotificationPermissionFromUserGesture,
@@ -38,6 +39,7 @@ function RemindersPage() {
   const [home] = useLocalState<HomeLocation | null>(K.home, null);
   const [stores, setStores] = useLocalState<SavedStore[]>(K.stores, []);
   const [perm, setPerm] = useState<NotificationPermission>("default");
+  const [supportState, setSupportState] = useState(getNotificationSupportState());
   const [tracking, setTracking] = useState(false);
 
   const storesRef = useRef(stores);
@@ -46,6 +48,7 @@ function RemindersPage() {
   settingsRef.current = settings;
 
   useEffect(() => {
+    setSupportState(getNotificationSupportState());
     if (typeof window !== "undefined" && "Notification" in window) {
       setPerm(getCurrentNotificationPermission());
       prepareNotifications();
@@ -100,6 +103,13 @@ function RemindersPage() {
 
   async function toggleEnabled(next: boolean) {
     if (next) {
+      const support = getNotificationSupportState();
+      setSupportState(support);
+      if (support !== "supported") {
+        setSettings({ ...settings, enabled: false });
+        return;
+      }
+
       const p = await ensureNotificationPermission();
       setPerm(p);
       if (p === "denied") {
@@ -133,9 +143,19 @@ function RemindersPage() {
           </div>
           <Switch checked={settings.enabled} onChange={toggleEnabled} />
         </div>
-        {perm === "denied" && settings.enabled && (
+        {perm === "denied" && settings.enabled && supportState === "supported" && (
           <p className="mt-3 text-xs text-destructive">
             Notifications are blocked. Enable them in your browser settings for this site.
+          </p>
+        )}
+        {supportState === "preview" && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            Notification testing does not work inside the editor preview. Open the published app to test it.
+          </p>
+        )}
+        {supportState === "install-required" && (
+          <p className="mt-3 text-xs text-muted-foreground">
+            On iPhone, notifications only work after you add Bag Au Pair to your Home Screen and open it from there.
           </p>
         )}
       </section>
@@ -143,6 +163,21 @@ function RemindersPage() {
       {/* Test button — pinned near the top so it's reachable without scrolling */}
       <button
         onClick={async () => {
+          const support = getNotificationSupportState();
+          setSupportState(support);
+          if (support === "preview") {
+            alert("Test notifications do not work inside the editor preview. Open the published app or installed app to test them.");
+            return;
+          }
+          if (support === "install-required") {
+            alert("On iPhone, notifications only work after adding the app to your Home Screen and opening it from there.");
+            return;
+          }
+          if (support === "unsupported") {
+            alert("This browser does not support app notifications.");
+            return;
+          }
+
           const p = await requestNotificationPermissionFromUserGesture();
           setPerm(p);
           if (p === "denied") {
