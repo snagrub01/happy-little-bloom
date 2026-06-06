@@ -3,7 +3,12 @@ import { useMemo, useState } from "react";
 import { Loader2, LocateFixed, MapPin, Plus, Trash2 } from "lucide-react";
 import { AppShell } from "@/components/AppShell";
 import { useLocalState, K } from "@/lib/storage";
-import type { HomeLocation, SavedStore } from "@/lib/types";
+import {
+  STORE_TRIGGER_PRESETS,
+  normalizeStoreTriggerFeet,
+  type HomeLocation,
+  type SavedStore,
+} from "@/lib/types";
 import { feetBetween, getCurrentPosition } from "@/lib/geo";
 import { searchNearbyStores, geocodeAddress } from "@/lib/maps.functions";
 
@@ -73,7 +78,7 @@ function StoresPage() {
 
   function addStore(p: { id: string; name: string; address: string; lat: number; lng: number }) {
     if (stores.find((s) => s.id === p.id)) return;
-    setStores([...stores, { ...p, triggerFeet: 300 }]);
+    setStores([...stores, { ...p, triggerFeet: STORE_TRIGGER_PRESETS[1].feet }]);
   }
 
   function removeStore(id: string) {
@@ -81,14 +86,14 @@ function StoresPage() {
   }
 
   function updateTrigger(id: string, feet: number) {
-    setStores(stores.map((s) => (s.id === id ? { ...s, triggerFeet: feet } : s)));
+    setStores(stores.map((s) => (s.id === id ? { ...s, triggerFeet: normalizeStoreTriggerFeet(feet) } : s)));
   }
 
   return (
     <AppShell>
       <h1 className="text-2xl font-bold tracking-tight">Find Stores</h1>
       <p className="mt-1 text-sm text-muted-foreground">
-        Set home, search nearby, then tune when each store reminds you.
+        Set home, search nearby, then choose when each store should remind you.
       </p>
 
       {/* Home */}
@@ -196,7 +201,7 @@ function StoresPage() {
         </section>
       )}
 
-      {/* Saved stores with per-store trigger sliders */}
+      {/* Saved stores with standard reminder presets */}
       {stores.length > 0 && (
         <section className="mt-6">
           <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider">
@@ -219,17 +224,28 @@ function StoresPage() {
                   </button>
                 </div>
                 <div className="mt-3 flex items-center justify-between text-xs">
-                  <span className="text-muted-foreground">Remind me within</span>
-                  <span className="font-semibold text-primary">{formatFeet(s.triggerFeet)}</span>
+                  <span className="text-muted-foreground">Remind me</span>
+                  <span className="font-semibold text-primary">{presetLabel(s.triggerFeet)}</span>
                 </div>
-                <input
-                  type="range" min={25} max={1800} step={25}
-                  value={s.triggerFeet}
-                  onChange={(e) => updateTrigger(s.id, Number(e.target.value))}
-                  className="mt-1 w-full accent-[var(--primary)]"
-                />
-                <div className="mt-0.5 flex justify-between text-[10px] text-muted-foreground">
-                  <span>25 ft</span><span>1800 ft</span>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {STORE_TRIGGER_PRESETS.map((preset) => {
+                    const selected = normalizeStoreTriggerFeet(s.triggerFeet) === preset.feet;
+                    return (
+                      <button
+                        key={preset.label}
+                        type="button"
+                        onClick={() => updateTrigger(s.id, preset.feet)}
+                        className={
+                          "rounded-xl border px-3 py-2 text-xs font-medium transition-colors " +
+                          (selected
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border bg-background text-foreground hover:bg-secondary")
+                        }
+                      >
+                        {preset.label}
+                      </button>
+                    );
+                  })}
                 </div>
               </li>
             ))}
@@ -243,4 +259,9 @@ function StoresPage() {
 function formatFeet(ft: number): string {
   if (ft >= FEET_PER_MILE) return `${(ft / FEET_PER_MILE).toFixed(ft % FEET_PER_MILE === 0 ? 0 : 1)} mi`;
   return `${ft.toLocaleString()} ft`;
+}
+
+function presetLabel(feet: number): string {
+  const normalized = normalizeStoreTriggerFeet(feet);
+  return STORE_TRIGGER_PRESETS.find((preset) => preset.feet === normalized)?.label ?? formatFeet(normalized);
 }
